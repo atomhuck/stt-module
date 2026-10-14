@@ -2,7 +2,7 @@
 """Verify a candidate voice against an enrollment window and label other speakers.
 
 The program consumes speech intervals from NeMo-Speech.cpp and speaker embeddings
-from sherpa-onnx. It deliberately keeps uncertain/short intervals for manual review.
+from sherpa-onnx. Every speech interval receives an automatic speaker role.
 """
 
 from __future__ import annotations
@@ -48,9 +48,9 @@ class VoiceInterval:
     candidate_similarity: float | None = None
     interviewer_similarity: float | None = None
     cluster_index: int | None = None
-    label: str = "Проверить вручную"
+    label: str = ""
     confidence: str = "низкая"
-    decision: str = "Недостаточно данных"
+    decision: str = ""
     overlapped: bool = False
 
     @property
@@ -262,7 +262,7 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
         warnings.append(
             "Окно эталона пересекает несколько временных speaker ID по Nemotron: "
             + ", ".join(ref_ids)
-            + ". Проверьте, что в записи 20–30 с говорит только кандидат."
+            + ". Качество эталона может снизиться."
         )
 
     model_path = args.model.resolve()
@@ -288,15 +288,6 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
 
     mark_overlaps(intervals)
     threshold = float(args.threshold)
-    margin = float(args.uncertain_margin)
-    clear_non_candidate = threshold - margin
-
-    # Assign clear candidate matches first.
-    for item in intervals:
-        if item.candidate_similarity is not None and item.candidate_similarity >= threshold:
-            item.label = "Кандидат"
-            item.confidence = "высокая" if item.duration >= 2.5 and not item.overlapped else "средняя"
-            item.decision = "Сходство с эталоном выше порога"
 
     # Build interviewer prototypes from longer, clear non-candidate utterances.
     clusters: list[InterviewerCluster] = []
@@ -304,7 +295,7 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
         item for item in intervals
         if item.embedding is not None
         and item.candidate_similarity is not None
-        and item.candidate_similarity < clear_non_candidate
+        and item.candidate_similarity < threshold
         and item.duration >= args.min_cluster_seconds
         and not item.overlapped
     ]
@@ -321,13 +312,22 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
             item.cluster_index = len(clusters) - 1
             item.interviewer_similarity = 1.0
 
-    # Match remaining clear non-candidate segments to the established prototypes.
+    # Short interviews may have no long interviewer utterance to bootstrap from.
+    if not clusters:
+        fallback_seeds = [
+            item for item in intervals
+            if item.embedding is not None
+            and item.candidate_similarity is not None
+            and item.candidate_similarity < threshold
+        ]
+        if fallback_seeds:
+            seed = max(fallback_seeds, key=lambda item: (item.duration, -item.start))
+            clusters.append(InterviewerCluster([seed.embedding], seed.start))
+            seed.cluster_index = 0
+
+    # Compare all usable intervals with the interviewer prototypes.
     for item in intervals:
-        if item.label == "Кандидат" or item.embedding is None:
-            continue
-        if item.candidate_similarity is None or item.candidate_similarity >= clear_non_candidate:
-            continue
-        if not clusters:
+        if item.embedding is None or not clusters:
             continue
         similarities = [cluster_similarity(item.embedding, group) for group in clusters]
         index = int(np.argmax(similarities))
@@ -339,26 +339,61 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
     cluster_order = sorted(range(len(clusters)), key=lambda index: clusters[index].first_start)
     display_number = {cluster_index: number + 1 for number, cluster_index in enumerate(cluster_order)}
     for item in intervals:
-        if item.label == "Кандидат":
-            continue
         score = item.candidate_similarity
-        if item.cluster_index is not None:
+        interviewer_score = item.interviewer_similarity
+        if score is not None and score >= threshold and (
+            interviewer_score is None or score >= interviewer_score
+        ):
+            item.label = "Кандидат"
+            item.confidence = "высокая" if item.duration >= 2.5 and not item.overlapped else "средняя"
+            item.decision = "Сходство с эталоном выше порога"
+        elif item.cluster_index is not None and interviewer_score is not None and (
+            interviewer_score >= args.cluster_threshold and (score is None or interviewer_score > score)
+        ):
             item.label = f"Интервьюер {display_number[item.cluster_index]}"
             item.confidence = "высокая" if item.duration >= 2.5 and not item.overlapped else "средняя"
             item.decision = "Совпадение с группой другого голоса"
-        elif score is not None and score >= clear_non_candidate:
-            item.label = "Проверить вручную"
-            item.confidence = "низкая"
-            item.decision = "Пограничное сходство с эталоном кандидата"
+
+    # Infer a stable role for each Nemotron speaker ID from confidently labeled
+    # utterances, then use it only where local voice comparison is inconclusive.
+    source_votes: dict[str, dict[str, float]] = {}
+    for item in intervals:
+        if item.label:
+            votes = source_votes.setdefault(item.source_speaker_id, {})
+            votes[item.label] = votes.get(item.label, 0.0) + item.duration
+    source_roles = {
+        source_id: max(votes, key=votes.get)
+        for source_id, votes in source_votes.items()
+    }
+
+    for item in intervals:
+        if item.label:
+            continue
+        source_role = source_roles.get(item.source_speaker_id)
+        if source_role:
+            item.label = source_role
+            item.decision = "Автоматически назначено по устойчивой роли speaker ID"
+        elif item.candidate_similarity is not None and (
+            item.interviewer_similarity is None
+            or item.candidate_similarity >= item.interviewer_similarity
+        ):
+            item.label = "Кандидат"
+            item.decision = "Автоматически выбрано по максимальному сходству голосов"
+        elif item.interviewer_similarity is not None and clusters:
+            index = int(np.argmax([cluster_similarity(item.embedding, group) for group in clusters]))
+            item.label = f"Интервьюер {display_number[index]}"
+            item.decision = "Автоматически выбрано по максимальному сходству голосов"
+        elif source_roles:
+            nearest = min(
+                (other for other in intervals if other.label and other is not item),
+                key=lambda other: min(abs(item.start - other.end), abs(item.end - other.start)),
+            )
+            item.label = nearest.label
+            item.decision = "Автоматически назначено по ближайшей реплике"
         else:
-            item.label = "Проверить вручную"
-            item.confidence = "низкая"
-            if item.embedding is None:
-                item.decision = "Сегмент слишком короткий или тихий для сравнения"
-            elif item.overlapped:
-                item.decision = "Перекрытие голосов или граница реплик"
-            else:
-                item.decision = "Не найдено надёжное совпадение с группами интервьюеров"
+            item.label = "Кандидат"
+            item.decision = "Голосовой эталон — единственный доступный ориентир"
+        item.confidence = "низкая"
 
     events: list[dict[str, Any]] = []
     events.append(
@@ -405,7 +440,6 @@ def make_output(args: argparse.Namespace) -> tuple[dict[str, Any], list[dict[str
         "enrollment": {"start": ref_start, "end": ref_end, "duration": ref_end - ref_start},
         "thresholds": {
             "candidate_similarity": threshold,
-            "uncertain_margin": margin,
             "interviewer_cluster_similarity": args.cluster_threshold,
         },
         "summary": summary,
@@ -431,7 +465,6 @@ def main() -> int:
     parser.add_argument("--enroll-start", type=float, default=20.0, help="начало эталона, сек")
     parser.add_argument("--enroll-duration", type=float, default=10.0, help="длительность эталона, сек")
     parser.add_argument("--threshold", type=float, default=0.60, help="порог совпадения с кандидатом")
-    parser.add_argument("--uncertain-margin", type=float, default=0.15, help="зона ручной проверки ниже порога")
     parser.add_argument("--cluster-threshold", type=float, default=0.60, help="порог группировки интервьюеров")
     parser.add_argument("--min-cluster-seconds", type=float, default=3.0, help="минимум для создания новой группы")
     parser.add_argument("--num-threads", type=int, default=4, help="потоки CPU")
@@ -472,7 +505,7 @@ def main() -> int:
             print(f"  {label}: {count} сегм.")
         for warning in result["warnings"]:
             print(f"Предупреждение: {warning}")
-        print("Короткие и спорные отрезки оставлены с меткой «Проверить вручную».")
+        print("Всем речевым сегментам автоматически назначены роли.")
         return 0
     except Exception as exc:
         print(f"Ошибка: {exc}", file=sys.stderr)
