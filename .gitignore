@@ -1,0 +1,17 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.env
+models/
+*.gguf
+*.onnx
+*.wav
+*.mp3
+*.flac
+*.opus
+*.rttm
+*.verified.json
+*_verified.csv
+outputs/
+tmp/
