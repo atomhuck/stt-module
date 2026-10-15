@@ -1,0 +1,314 @@
+{
+  "metrics": {
+    "scored_reference_speech_s": 99.5,
+    "correct_single_role_s": 91.25,
+    "wrong_single_role_s": 0.0,
+    "missing_s": 7.53,
+    "extra_role_on_overlap_s": 0.72,
+    "correct_role_fraction_of_all_reference_speech": 0.9171,
+    "single_role_accuracy_where_system_emitted_one": 1.0,
+    "candidate": {
+      "correct": 76.73,
+      "missing": 4.39,
+      "overlap_output": 0.72
+    },
+    "interviewer": {
+      "correct": 14.52,
+      "missing": 3.14
+    }
+  },
+  "error_intervals": [
+    {
+      "type": "missing",
+      "reference_role": "Интервьюер 1",
+      "start": 13.54,
+      "end": 13.68,
+      "duration": 0.14
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 13.68,
+      "end": 15.34,
+      "duration": 1.66
+    },
+    {
+      "type": "missing",
+      "reference_role": "Интервьюер 1",
+      "start": 15.48,
+      "end": 18.48,
+      "duration": 3.0
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 32.41,
+      "end": 32.75,
+      "duration": 0.34
+    },
+    {
+      "type": "overlap_output",
+      "reference_role": "Кандидат",
+      "start": 41.71,
+      "end": 41.8,
+      "duration": 0.09
+    },
+    {
+      "type": "overlap_output",
+      "reference_role": "Кандидат",
+      "start": 61.81,
+      "end": 62.44,
+      "duration": 0.63
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 74.1,
+      "end": 74.77,
+      "duration": 0.67
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 91.58,
+      "end": 92.1,
+      "duration": 0.52
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 93.28,
+      "end": 93.83,
+      "duration": 0.55
+    },
+    {
+      "type": "missing",
+      "reference_role": "Кандидат",
+      "start": 96.71,
+      "end": 97.36,
+      "duration": 0.65
+    }
+  ],
+  "system_segments": [
+    {
+      "start": 0.811,
+      "end": 3.259,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "1",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 0.05,
+      "scorable": false,
+      "role_matches": null
+    },
+    {
+      "start": 3.211,
+      "end": 4.359,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 0.89,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 4.351,
+      "end": 5.579,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 0.8,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 5.631,
+      "end": 6.599,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 0.42,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 6.471,
+      "end": 7.909,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 0.84,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 8.021,
+      "end": 13.539,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 5.35,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 18.531,
+      "end": 20.0,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 1.24,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 20.0,
+      "end": 30.0,
+      "predicted_role": "Кандидат (эталон)",
+      "source_speaker_id": null,
+      "reference_role": null,
+      "reference_overlap_s": 0.0,
+      "scorable": false,
+      "role_matches": null
+    },
+    {
+      "start": 30.0,
+      "end": 32.409,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 2.4,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 32.751,
+      "end": 41.939,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 8.59,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 41.711,
+      "end": 46.739,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 4.62,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 47.061,
+      "end": 50.759,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 3.24,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 50.571,
+      "end": 51.269,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": null,
+      "reference_overlap_s": 0.0,
+      "scorable": false,
+      "role_matches": null
+    },
+    {
+      "start": 51.331,
+      "end": 58.719,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 5.6,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 59.101,
+      "end": 74.099,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 13.89,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 61.811,
+      "end": 62.439,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 0.62,
+      "scorable": true,
+      "role_matches": false
+    },
+    {
+      "start": 74.771,
+      "end": 83.179,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 8.25,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 83.211,
+      "end": 86.809,
+      "predicted_role": "Интервьюер 1",
+      "source_speaker_id": "2",
+      "reference_role": "Интервьюер 1",
+      "reference_overlap_s": 3.22,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 87.201,
+      "end": 90.009,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 2.36,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 92.101,
+      "end": 93.279,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 1.17,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 93.831,
+      "end": 96.709,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 2.87,
+      "scorable": true,
+      "role_matches": true
+    },
+    {
+      "start": 97.361,
+      "end": 125.0,
+      "predicted_role": "Кандидат",
+      "source_speaker_id": "3",
+      "reference_role": "Кандидат",
+      "reference_overlap_s": 26.16,
+      "scorable": true,
+      "role_matches": true
+    }
+  ]
+}
