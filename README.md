@@ -69,7 +69,7 @@ $runtime = 'C:\Users\Public\NemotronTest'
   --nemo-lib "$runtime\runtime\bin\nemo_speech_asr_c.dll" `
   --nemo-model "$runtime\model.gguf" `
   --speaker-model "$runtime\speaker_embedding_model.onnx" `
-  --output-dir "$project\diarization-test\stream-replay-15-10" `
+  --output-dir "$project\diarization-test\stream-replay-my-run" `
   --chunk-seconds 0.64 --pace realtime --save-chunks
 ```
 
