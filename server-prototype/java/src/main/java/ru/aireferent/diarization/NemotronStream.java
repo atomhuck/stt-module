@@ -6,7 +6,9 @@ import com.sun.jna.Native;
 import com.sun.jna.Pointer;
 import com.sun.jna.Structure;
 import com.sun.jna.WString;
+import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.LongByReference;
+import com.sun.jna.ptr.PointerByReference;
 import com.sun.jna.win32.StdCallLibrary;
 
 import java.nio.charset.StandardCharsets;
@@ -56,6 +58,12 @@ final class NemotronStream implements AutoCloseable {
         boolean SetDllDirectoryW(WString path);
     }
 
+    interface VersionApi extends StdCallLibrary {
+        int GetFileVersionInfoSizeW(WString filename, IntByReference handle);
+        boolean GetFileVersionInfoW(WString filename, int handle, int size, Pointer data);
+        boolean VerQueryValueW(Pointer data, WString subBlock, PointerByReference value, IntByReference size);
+    }
+
     private final Api api;
     private Pointer model;
     private Pointer stream;
@@ -65,8 +73,10 @@ final class NemotronStream implements AutoCloseable {
         if (!Files.isRegularFile(dll) || !Files.isRegularFile(gguf))
             throw new IllegalArgumentException("Не найдены библиотека Nemotron или GGUF: " + dll + ", " + gguf);
         if (Native.POINTER_SIZE != 8) throw new IllegalArgumentException("Нужна 64-битная Java.");
-        if (System.getProperty("os.name").toLowerCase().contains("win"))
+        if (System.getProperty("os.name").toLowerCase().contains("win")) {
+            checkWindowsRuntime(dll.getParent());
             Native.load("kernel32", Kernel32.class).SetDllDirectoryW(new WString(dll.getParent().toString()));
+        }
         System.setProperty("jna.library.path", dll.getParent().toString());
         api = Native.load(dll.toString(), Api.class);
         Config cfg = new Config();
@@ -93,6 +103,46 @@ final class NemotronStream implements AutoCloseable {
             close();
             throw e;
         }
+    }
+
+    private static void checkWindowsRuntime(Path nemoBin) {
+        Path javaRuntime = Path.of(System.getProperty("java.home"), "bin", "msvcp140.dll");
+        Path nemoRuntime = nemoBin.resolve("msvcp140.dll");
+        if (!Files.isRegularFile(javaRuntime) || !Files.isRegularFile(nemoRuntime)) return;
+        VersionApi api = Native.load("version", VersionApi.class);
+        long[] javaVersion = fileVersion(api, javaRuntime);
+        long[] nemoVersion = fileVersion(api, nemoRuntime);
+        if (javaVersion == null || nemoVersion == null) return;
+        for (int i = 0; i < javaVersion.length; i++) {
+            if (javaVersion[i] > nemoVersion[i]) return;
+            if (javaVersion[i] < nemoVersion[i]) {
+                throw new IllegalStateException("JRE использует msvcp140.dll " + versionText(javaVersion)
+                        + ", а Nemotron требует " + versionText(nemoVersion)
+                        + ". В IntelliJ IDEA выберите подготовленный совместимый SDK в Run → Edit Configurations → JRE."
+                        + " Сейчас java.home=" + System.getProperty("java.home"));
+            }
+        }
+    }
+
+    private static long[] fileVersion(VersionApi api, Path path) {
+        WString filename = new WString(path.toString());
+        IntByReference unused = new IntByReference();
+        int size = api.GetFileVersionInfoSizeW(filename, unused);
+        if (size <= 0) return null;
+        Memory info = new Memory(size);
+        if (!api.GetFileVersionInfoW(filename, 0, size, info)) return null;
+        PointerByReference value = new PointerByReference();
+        IntByReference length = new IntByReference();
+        if (!api.VerQueryValueW(info, new WString("\\"), value, length) || length.getValue() < 16) return null;
+        Pointer fixed = value.getValue();
+        if (fixed.getInt(0) != 0xFEEF04BD) return null;
+        long high = Integer.toUnsignedLong(fixed.getInt(8));
+        long low = Integer.toUnsignedLong(fixed.getInt(12));
+        return new long[]{high >>> 16, high & 0xffff, low >>> 16, low & 0xffff};
+    }
+
+    private static String versionText(long[] version) {
+        return version[0] + "." + version[1] + "." + version[2] + "." + version[3];
     }
 
     private static Memory utf8(String text) {
