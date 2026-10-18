@@ -1,0 +1,30 @@
+package ru.aireferent.diarization;
+
+import java.util.Arrays;
+import java.util.Map;
+
+public final class Main {
+    private Main() {}
+
+    public static void main(String[] args) {
+        try {
+            if (args.length == 0 || args[0].equals("--help") || args[0].equals("-h")) {
+                System.out.println("Использование: java -jar diarization-worker-1.0.0.jar stream|verify [параметры]\n"
+                        + "stream: --audio WAV --nemo-lib DLL --nemo-model GGUF --speaker-model ONNX --output-dir DIR\n"
+                        + "verify: --audio WAV --diarization-json JSON --model ONNX [--output JSON --csv CSV]\n"
+                        + "Подробности: server-prototype/java/README.md");
+                return;
+            }
+            String[] rest = Arrays.copyOfRange(args, 1, args.length);
+            Map<String, String> options = Support.options(rest);
+            switch (args[0]) {
+                case "stream" -> new StreamReplay(options).run();
+                case "verify" -> new OfflineVerify(options).run();
+                default -> throw new IllegalArgumentException("Неизвестный режим: " + args[0]);
+            }
+        } catch (Exception | LinkageError error) {
+            System.err.println("Ошибка: " + error.getMessage());
+            System.exit(1);
+        }
+    }
+}
