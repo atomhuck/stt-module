@@ -2,6 +2,7 @@ class MonoPcmWorklet extends AudioWorkletProcessor {
   constructor() {
     super();
     this.active = false;
+    this.phase = 'enroll';
     this.output = new Int16Array(10240);
     this.used = 0;
     this.inputIndex = 0;
@@ -9,7 +10,8 @@ class MonoPcmWorklet extends AudioWorkletProcessor {
     this.previous = 0;
     this.step = sampleRate / 16000;
     this.port.onmessage = event => {
-      if (event.data === 'start') {
+      if (event.data === 'enroll' || event.data === 'live') {
+        this.phase = event.data;
         this.active = true;
         this.used = 0;
         this.inputIndex = 0;
@@ -27,11 +29,21 @@ class MonoPcmWorklet extends AudioWorkletProcessor {
     this.port.postMessage({type: 'audio', buffer}, [buffer]);
     this.used = 0;
   }
+  mono(channels, index) {
+    if (!channels.length) return 0;
+    let total = 0;
+    for (const channel of channels) total += channel[index] || 0;
+    return total / channels.length;
+  }
   process(inputs, outputs) {
-    const channel = inputs[0]?.[0];
-    if (this.active && channel) {
-      for (let i = 0; i < channel.length; i++) {
-        const current = channel[i];
+    const system = inputs[0] || [];
+    const microphone = inputs[1] || [];
+    if (this.active) {
+      const frames = system[0]?.length || microphone[0]?.length || 128;
+      for (let i = 0; i < frames; i++) {
+        const computer = this.mono(system, i);
+        const current = this.phase === 'enroll' ? computer :
+          Math.max(-1, Math.min(1, (computer + this.mono(microphone, i)) * .5));
         while (this.nextOutput <= this.inputIndex) {
           const fraction = this.inputIndex ? Math.max(0, Math.min(1, this.nextOutput - (this.inputIndex - 1))) : 1;
           const value = this.previous + (current - this.previous) * fraction;

@@ -21,7 +21,7 @@ final class LiveSession implements AutoCloseable {
     private final NemotronStream diarizer;
     private final OnlineRoles roles;
     private final Path outputDir, logPath, segmentsPath, summaryPath;
-    private final String source, mode, micName, preset;
+    private final String source, mode, enrollmentSource, micName, preset;
     private final int inputRate, inputChannels;
     private final double enrollmentSeconds, chunkSeconds, settleSeconds, startupSeconds;
     private final BufferedWriter log;
@@ -35,7 +35,7 @@ final class LiveSession implements AutoCloseable {
     private boolean finished;
 
     LiveSession(NemotronStream diarizer, SpeakerEmbeddingExtractor extractor, float[] candidate,
-                double threshold, Path outputDir, String source, String mode, String micName,
+                double threshold, Path outputDir, String source, String mode, String enrollmentSource, String micName,
                 int inputRate, int inputChannels, double enrollmentSeconds, double chunkSeconds,
                 double settleSeconds, double startupSeconds, String preset, Capture initial) throws Exception {
         this.diarizer = diarizer;
@@ -46,6 +46,7 @@ final class LiveSession implements AutoCloseable {
         this.summaryPath = outputDir.resolve("summary.json");
         this.source = source;
         this.mode = mode;
+        this.enrollmentSource = enrollmentSource;
         this.micName = micName;
         this.inputRate = inputRate;
         this.inputChannels = inputChannels;
@@ -70,7 +71,7 @@ final class LiveSession implements AutoCloseable {
     boolean isFinished() { return finished; }
 
     private Map<String, Object> enrollment() {
-        return Support.map("duration", Support.round(enrollmentSeconds, 3), "preloaded", false, "source", mode);
+        return Support.map("duration", Support.round(enrollmentSeconds, 3), "preloaded", false, "source", enrollmentSource);
     }
 
     private void emit(Map<String, Object> event) throws Exception {

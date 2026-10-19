@@ -1,6 +1,6 @@
 const $ = id => document.getElementById(id);
 const enroll = $('enroll'), finish = $('finish');
-let stream, context, source, worklet, sessionId, mode = 'idle', sequence = 0;
+let stream, display, context, source, systemSource, worklet, sessionId, mode = 'idle', sequence = 0, closing = false;
 let pending = Promise.resolve(), stopResolver, startTime = 0, polling = false;
 
 async function request(path, body, headers = {}) {
@@ -36,7 +36,7 @@ function render(status) {
     enroll.disabled = false; enroll.textContent = 'Повторить запись голоса'; finish.disabled = true;
   } else if (phase === 'live') {
     enroll.disabled = true; finish.disabled = false;
-    $('hint').textContent = 'Говорите в микрофон. Роль предварительная; точный результат сохранится в JSON.';
+    $('hint').textContent = 'Звук компьютера и микрофон анализируются вместе. Роль предварительная; результат сохранится в JSON.';
   } else if (phase === 'finished' || phase === 'error') {
     enroll.disabled = false; enroll.textContent = 'Новое интервью'; finish.disabled = true;
   }
@@ -47,22 +47,53 @@ function stopAudio() {
   worklet.port.postMessage('stop');
   return ended;
 }
-function releaseMicrophone() {
-  stream?.getTracks().forEach(track => track.stop());
-  source?.disconnect(); worklet?.disconnect(); context?.close();
-  stream = context = source = worklet = undefined;
+function releaseAudio() {
+  for (const captured of [stream, display]) captured?.getTracks().forEach(track => {
+    track.onended = null;
+    track.stop();
+  });
+  source?.disconnect(); systemSource?.disconnect(); worklet?.disconnect(); context?.close();
+  stream = display = context = source = systemSource = worklet = undefined;
 }
-async function prepareMicrophone() {
+function systemAudioAvailable() {
+  return display?.getVideoTracks()[0]?.readyState === 'live' &&
+    display?.getAudioTracks()[0]?.readyState === 'live';
+}
+async function sourceLost(reason) {
+  if (closing || mode === 'done' || mode === 'idle') return;
+  closing = true;
+  showError(reason === 'system_audio_lost'
+    ? 'Демонстрация экрана или системный звук прервались. Сохраняем обработанную часть интервью.'
+    : 'Микрофон отключился. Сохраняем обработанную часть интервью.');
+  try {
+    if (mode === 'enroll' || mode === 'live') await stopAudio();
+    mode = 'stopping';
+    try { await pending; } catch (error) { showError(error.message); }
+    if (sessionId) render(await request('/api/finish', new Uint8Array(), {'X-Stop-Reason': reason}));
+  } catch (error) { showError(error.message); }
+  finally { mode = 'done'; releaseAudio(); enroll.disabled = false; closing = false; }
+}
+async function prepareAudio() {
+  // The display permission request must begin directly in the button click handler.
+  const displayRequest = navigator.mediaDevices.getDisplayMedia({
+    video: {displaySurface: 'monitor'}, audio: true, systemAudio: 'include', monitorTypeSurfaces: 'include'
+  });
+  display = await displayRequest;
+  const video = display.getVideoTracks()[0], systemAudio = display.getAudioTracks()[0];
+  if (video?.getSettings().displaySurface !== 'monitor')
+    throw new Error('Выберите весь экран, а не окно или вкладку, и включите передачу системного звука.');
+  if (!systemAudio || systemAudio.readyState !== 'live')
+    throw new Error('Браузер не предоставил звук компьютера. Выберите весь экран со звуком в Chrome или Edge.');
   stream = await navigator.mediaDevices.getUserMedia({audio: {channelCount: 1, echoCancellation: false, noiseSuppression: false}});
-  stream.getAudioTracks()[0].onended = () => {
-    showError('Микрофон отключился. Текущая запись завершается.');
-    if (mode === 'live') finishInterview();
-  };
   context = new AudioContext();
   await context.audioWorklet.addModule('/audio-worklet.js');
   source = context.createMediaStreamSource(stream);
-  worklet = new AudioWorkletNode(context, 'mono-pcm');
-  source.connect(worklet);
+  systemSource = context.createMediaStreamSource(new MediaStream([systemAudio]));
+  worklet = new AudioWorkletNode(context, 'mono-pcm', {
+    numberOfInputs: 2, numberOfOutputs: 1, outputChannelCount: [1]
+  });
+  systemSource.connect(worklet, 0, 0);
+  source.connect(worklet, 0, 1);
   worklet.connect(context.destination);
   worklet.port.onmessage = event => {
     if (event.data.type === 'stopped') { stopResolver?.(); stopResolver = undefined; return; }
@@ -72,48 +103,70 @@ async function prepareMicrophone() {
     pending = pending.then(() => request(path, event.data.buffer, {'X-Sequence': String(number)}));
     pending.catch(error => {
       showError(error.message);
-      if (mode === 'live') { mode = 'stopping'; worklet?.port.postMessage('stop'); }
+      if (mode === 'live') sourceLost('capture_error');
     });
   };
+  video.onended = systemAudio.onended = () => sourceLost('system_audio_lost');
+  stream.getAudioTracks()[0].onended = () => sourceLost('microphone_lost');
   await context.resume();
+  if (!systemAudioAvailable()) throw new Error('Демонстрация экрана или её аудиодорожка прервалась. Повторите выбор.');
 }
 async function startEnrollment() {
-  clearError(); enroll.disabled = true; mode = 'opening';
+  clearError(); enroll.disabled = true; mode = 'opening'; sessionId = undefined;
   try {
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error('Откройте страницу по http://localhost:8765 в браузере с поддержкой микрофона.');
-    // Ask permission before creating a model session, so denial leaves the server idle.
-    await prepareMicrophone();
-    sessionId = undefined;
+    if (!navigator.mediaDevices?.getDisplayMedia || !navigator.mediaDevices?.getUserMedia)
+      throw new Error('Откройте http://localhost:8765 в Chrome или Edge с поддержкой захвата экрана и микрофона.');
+    // Both permissions are obtained before creating a model session.
+    await prepareAudio();
+    if (!systemAudioAvailable() || mode !== 'opening') throw new Error('Демонстрация экрана прервалась до начала записи.');
     const status = await request('/api/enrollment/start', new Uint8Array());
+    if (!systemAudioAvailable()) {
+      sessionId = status.session_id;
+      await request('/api/finish', new Uint8Array(), {'X-Stop-Reason': 'system_audio_lost'});
+      throw new Error('Системный звук прервался до записи эталона. Повторите выбор экрана.');
+    }
     sessionId = status.session_id;
     pending = Promise.resolve(); sequence = 0; mode = 'enroll'; startTime = performance.now();
-    worklet.port.postMessage('start');
+    worklet.port.postMessage('enroll');
     enroll.disabled = false; enroll.textContent = 'Завершить запись голоса';
-    $('hint').textContent = 'Говорите один около 10 секунд. Повторное нажатие завершит запись эталона.';
+    $('hint').textContent = 'Воспроизводите голос кандидата на компьютере около 10 секунд. Микрофон в эталон не входит.';
     render(status);
   } catch (error) {
-    showError(error.message); releaseMicrophone(); mode = 'idle'; enroll.disabled = false;
+    showError(error.message); releaseAudio(); mode = 'idle'; enroll.disabled = false;
   }
 }
 async function finishEnrollment() {
   enroll.disabled = true;
   try {
     await stopAudio(); mode = 'preparing'; await pending;
+    if (!systemAudioAvailable()) { await sourceLost('system_audio_lost'); return; }
     const status = await request('/api/enrollment/finish', new Uint8Array());
     render(status);
-    if (status.phase === 'retry') { mode = 'retry'; releaseMicrophone(); return; }
+    if (status.phase === 'retry') { mode = 'retry'; releaseAudio(); return; }
     if (status.phase !== 'live') throw new Error(status.error || 'Не удалось начать анализ.');
     pending = Promise.resolve(); sequence = 0; mode = 'live'; startTime = performance.now();
-    worklet.port.postMessage('start');
-  } catch (error) { showError(error.message); releaseMicrophone(); mode = 'done'; enroll.disabled = false; }
+    worklet.port.postMessage('live');
+  } catch (error) {
+    showError(error.message);
+    if (sessionId) try {
+      await request('/api/finish', new Uint8Array(), {'X-Stop-Reason': 'capture_error'});
+    } catch (_) { /* The original error is shown above. */ }
+    releaseAudio(); mode = 'done'; enroll.disabled = false;
+  }
 }
 async function finishInterview() {
-  finish.disabled = true;
+  if (closing || mode !== 'live') return;
+  closing = true; finish.disabled = true;
   try {
     await stopAudio(); mode = 'stopping'; await pending;
-    render(await request('/api/finish', new Uint8Array()));
-    releaseMicrophone();
-  } catch (error) { showError(error.message); releaseMicrophone(); }
+    render(await request('/api/finish', new Uint8Array(), {'X-Stop-Reason': 'requested'}));
+  } catch (error) {
+    showError(error.message);
+    if (sessionId) try {
+      await request('/api/finish', new Uint8Array(), {'X-Stop-Reason': 'capture_error'});
+    } catch (_) { /* The original error is shown above. */ }
+  }
+  finally { releaseAudio(); closing = false; }
 }
 enroll.onclick = () => {
   if (mode === 'enroll') finishEnrollment();
@@ -129,7 +182,7 @@ setInterval(async () => {
     if (mode !== 'opening' && status.session_id && status.session_id === sessionId) {
       render(status);
       if ((status.phase === 'error' || status.phase === 'finished') && mode === 'live') {
-        mode = 'stopping'; worklet?.port.postMessage('stop'); releaseMicrophone();
+        mode = 'stopping'; releaseAudio();
       }
       if (status.phase === 'finished' || status.phase === 'error') mode = 'done';
       if (status.phase === 'retry') mode = 'retry';

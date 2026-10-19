@@ -90,7 +90,7 @@ final class LiveMicrophone {
                 int chunkSamples = (int) Math.rint(chunkSeconds * Support.RATE);
                 capture = new CapturePump(microphone, chunkSamples, queueChunks, maxSeconds, stop);
                 try (LiveSession session = new LiveSession(diarizer, extractor, candidate, threshold, outputDir,
-                        "microphone:" + microphone.name(), "live_microphone", microphone.name(),
+                        "microphone:" + microphone.name(), "live_microphone", "live_microphone", microphone.name(),
                         (int) microphone.format().getSampleRate(), microphone.format().getChannels(),
                         ENROLL_SECONDS, chunkSeconds, settleSeconds, startupSeconds, preset, metrics())) {
                     System.out.println("Эталон готов. Начинаю слушать микрофон. Для завершения нажмите Enter в окне Run.");

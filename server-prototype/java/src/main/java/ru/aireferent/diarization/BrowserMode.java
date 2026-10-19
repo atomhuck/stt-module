@@ -22,7 +22,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** Loopback-only browser microphone transport. One interview owns one model pair and one worker. */
+/** Loopback-only browser audio transport. One interview owns one model pair and one worker. */
 final class BrowserMode {
     private static final int CHUNK_SAMPLES = 10240;
     private final Path dll, gguf, speakerModel, outputRoot;
@@ -65,7 +65,7 @@ final class BrowserMode {
             server.stop(0);
         }));
         System.out.println("Браузерный режим готов: http://localhost:8765");
-        System.out.println("Откройте страницу, разрешите микрофон и запишите голос кандидата.");
+        System.out.println("Выберите весь экран со звуком и разрешите микрофон; эталон берётся из звука компьютера.");
         try {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
                 Desktop.getDesktop().browse(URI.create("http://localhost:8765"));
@@ -120,7 +120,12 @@ final class BrowserMode {
                     active.finishEnrollment(); reply(exchange, 200, active.status()); return;
                 }
                 if (path.equals("/api/finish")) {
-                    active.requestStop("requested"); reply(exchange, 200, active.status()); return;
+                    String reason = exchange.getRequestHeaders().getFirst("X-Stop-Reason");
+                    if (reason == null) reason = "requested";
+                    if (!reason.equals("requested") && !reason.equals("system_audio_lost")
+                            && !reason.equals("microphone_lost") && !reason.equals("capture_error"))
+                        throw new HttpError(400, "Неверная причина завершения.");
+                    active.requestStop(reason); reply(exchange, 200, active.status()); return;
                 }
             }
             throw new HttpError(404, "Страница или действие не найдены.");
@@ -233,7 +238,8 @@ final class BrowserMode {
             }
             try {
                 session = new LiveSession(diarizer, extractor, candidate, threshold, outputDir,
-                        "browser_microphone", "browser_microphone", "browser microphone", Support.RATE, 1,
+                        "browser_microphone_system_audio", "browser_microphone_system_audio",
+                        "browser_system_audio", "browser microphone + system audio", Support.RATE, 1,
                         seconds, .64, settleSeconds, (System.nanoTime() - startupAt) / 1e9, preset, metrics());
                 phase = "live";
                 worker = new Thread(this::consume, "nemotron-browser-" + id.substring(0, 8));
@@ -244,7 +250,7 @@ final class BrowserMode {
         }
 
         synchronized void liveAudio(long sequence, byte[] bytes) {
-            if (!phase.equals("live")) throw new HttpError(409, "Анализ микрофона сейчас недоступен.");
+            if (!phase.equals("live")) throw new HttpError(409, "Анализ аудио сейчас недоступен.");
             if (sequence != liveSequence) throw new HttpError(409, "Нарушен порядок чанков интервью.");
             float[] chunk = samples(bytes);
             LiveMicrophone.AudioChunk item = new LiveMicrophone.AudioChunk(sequence, acceptedSamples, chunk, System.nanoTime());
@@ -271,6 +277,8 @@ final class BrowserMode {
                 phase = "finished"; dispose(); return;
             }
             if (phase.equals("preparing")) return;
+            if (reason.equals("system_audio_lost") || reason.equals("microphone_lost") || reason.equals("capture_error"))
+                error = "Источник аудио прервался; обработанная часть интервью сохранена.";
             if (!stopRequested) { stopRequested = true; stopReason = reason; }
             notifyAll();
         }
