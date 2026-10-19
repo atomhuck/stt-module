@@ -256,13 +256,21 @@ final class OfflineVerify {
                     "duration", Support.round(refDuration, 3), "label", "Кандидат (эталон)",
                     "candidate_similarity", null, "interviewer_similarity", null,
                     "source_speaker_id", String.join(",", orderedRefIds), "confidence", "эталон",
+                    "confidence_percent", 100,
                     "decision", "Голос записан из заданного окна"));
-            for (Interval item : intervals) events.add(Support.map("start", Support.round(item.start, 3),
+            for (Interval item : intervals) {
+                int confidencePercent = ConfidenceScore.percent(item.confidence, item.label, item.decision,
+                        item.candidateSimilarity, item.interviewerSimilarity,
+                        item.label.startsWith("Интервьюер") ? clusterThreshold : threshold);
+                item.confidence = ConfidenceScore.label(confidencePercent);
+                events.add(Support.map("start", Support.round(item.start, 3),
                     "end", Support.round(item.end, 3), "duration", Support.round(item.duration(), 3),
                     "label", item.label,
                     "candidate_similarity", item.candidateSimilarity == null ? null : Support.round(item.candidateSimilarity, 4),
                     "interviewer_similarity", item.interviewerSimilarity == null ? null : Support.round(item.interviewerSimilarity, 4),
-                    "source_speaker_id", item.source, "confidence", item.confidence, "decision", item.decision));
+                    "source_speaker_id", item.source, "confidence", item.confidence,
+                    "confidence_percent", confidencePercent, "decision", item.decision));
+            }
             events.sort(Comparator.comparingDouble((Map<String, Object> row) -> (double) row.get("start"))
                     .thenComparingDouble(row -> (double) row.get("end")));
             Map<String, Integer> summary = new LinkedHashMap<>();

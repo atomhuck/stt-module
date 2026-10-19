@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 final class OnlineRoles {
+    private static final double MIN_STABLE_EVIDENCE_SECONDS = 2.5;
+    private static final double MIN_NEW_GROUP_SECONDS = 3.0;
     private static final class Interviewer {
         final int number;
         final List<float[]> embeddings = new ArrayList<>();
@@ -20,7 +22,6 @@ final class OnlineRoles {
     private final double threshold;
     private final List<Interviewer> interviewers = new ArrayList<>();
     private final Map<String, Map<String, Double>> sourceVotes = new LinkedHashMap<>();
-    private String lastLabel;
 
     OnlineRoles(float[] candidate, SpeakerEmbeddingExtractor extractor, double threshold) {
         this.candidate = candidate;
@@ -36,13 +37,12 @@ final class OnlineRoles {
         for (var entry : votes.entrySet()) {
             if (entry.getValue() > score) { score = entry.getValue(); best = entry.getKey(); }
         }
-        return best;
+        return score >= MIN_STABLE_EVIDENCE_SECONDS ? best : null;
     }
 
-    private void remember(String source, String label, double duration, boolean reliable) {
+    private void remember(String source, String label, double duration) {
         sourceVotes.computeIfAbsent(source, ignored -> new LinkedHashMap<>())
-                .merge(label, duration * (reliable ? 1.0 : .2), Double::sum);
-        lastLabel = label;
+                .merge(label, duration, Double::sum);
     }
 
     Map<String, Object> preview(float[] audio, double start, double end, String source) {
@@ -52,8 +52,8 @@ final class OnlineRoles {
         else {
             float[] embedding = Support.embedding(extractor, audio, Math.max(start, end - 2.0), end, 0);
             if (embedding == null) {
-                label = lastLabel;
-                basis = label == null ? "ожидание достаточного фрагмента" : "предыдущая реплика";
+                label = "Не определено";
+                basis = "ожидание достаточного фрагмента";
             } else {
                 double candidateScore = Support.dot(candidate, embedding);
                 int best = -1;
@@ -62,10 +62,16 @@ final class OnlineRoles {
                     double score = interviewers.get(i).similarity(embedding);
                     if (score > bestScore) { best = i; bestScore = score; }
                 }
-                if (candidateScore >= threshold || (best >= 0 && candidateScore >= bestScore)) label = "Кандидат";
-                else if (best >= 0) label = "Интервьюер " + interviewers.get(best).number;
-                else label = "Интервьюер 1";
-                basis = "предварительное сравнение голосов";
+                if (candidateScore >= threshold && (best < 0 || candidateScore >= bestScore)) {
+                    label = "Кандидат";
+                    basis = "предварительное сравнение голосов";
+                } else if (best >= 0 && bestScore >= threshold && bestScore > candidateScore) {
+                    label = "Интервьюер " + interviewers.get(best).number;
+                    basis = "предварительное сравнение голосов";
+                } else {
+                    label = "Не определено";
+                    basis = "сходство ниже порога";
+                }
             }
         }
         return Support.map("start", Support.round(start, 3), "observed_end", Support.round(end, 3),
@@ -90,47 +96,40 @@ final class OnlineRoles {
             label = "Кандидат";
             decision = "Сходство с эталоном выше порога";
             confidence = confident ? "высокая" : "средняя";
-            remember(source, label, duration, true);
+            remember(source, label, duration);
         } else if (bestScore != null && bestScore >= threshold && (candidateScore == null || bestScore > candidateScore)) {
             Interviewer group = interviewers.get(best);
             label = "Интервьюер " + group.number;
             decision = "Совпадение с группой интервьюера";
             confidence = confident ? "высокая" : "средняя";
             if (duration >= 1.5) group.embeddings.add(embedding);
-            remember(source, label, duration, true);
+            remember(source, label, duration);
         } else if (stable != null) {
             label = stable;
-            decision = "Устойчивая роль speaker ID";
+            decision = "speaker ID ранее подтверждён голосовым совпадением";
             confidence = "низкая";
-            remember(source, label, duration, false);
         } else if (embedding != null && candidateScore != null && candidateScore < threshold
-                && (interviewers.isEmpty() || (bestScore != null && bestScore < threshold && duration >= 3.0))) {
+                && (bestScore == null || bestScore < threshold) && duration >= MIN_NEW_GROUP_SECONDS) {
             Interviewer group = new Interviewer(interviewers.size() + 1, embedding);
             interviewers.add(group);
             label = "Интервьюер " + group.number;
             decision = "Создана группа другого голоса";
-            confidence = duration < 2.5 ? "низкая" : "средняя";
-            remember(source, label, duration, duration >= 2.5);
-        } else if (candidateScore != null && (bestScore == null || candidateScore >= bestScore)) {
-            label = "Кандидат";
-            decision = "Наибольшее сходство с эталоном";
-            confidence = "низкая";
-            remember(source, label, duration, false);
-        } else if (best >= 0) {
-            label = "Интервьюер " + interviewers.get(best).number;
-            decision = "Ближайшая группа другого голоса";
-            confidence = "низкая";
-            remember(source, label, duration, false);
+            confidence = "средняя";
+            remember(source, label, duration);
         } else {
-            label = lastLabel == null ? "Кандидат" : lastLabel;
-            decision = "Контекст предыдущей реплики без надёжного эмбеддинга";
+            label = "Не определено";
+            decision = embedding == null ? "Недостаточно речи для эмбеддинга; ожидаем подтверждения роли"
+                    : "Сходство ниже порога; ожидаем более длинную реплику";
             confidence = "низкая";
-            remember(source, label, duration, false);
         }
+        int confidencePercent = ConfidenceScore.percent(confidence, label, decision,
+                candidateScore, bestScore, threshold);
+        confidence = ConfidenceScore.label(confidencePercent);
         return Support.map("start", Support.round(start, 3), "end", Support.round(end, 3),
                 "duration", Support.round(duration, 3), "label", label,
                 "candidate_similarity", candidateScore == null ? null : Support.round(candidateScore, 4),
                 "interviewer_similarity", bestScore == null ? null : Support.round(bestScore, 4),
-                "source_speaker_id", source, "confidence", confidence, "decision", decision);
+                "source_speaker_id", source, "confidence", confidence,
+                "confidence_percent", confidencePercent, "decision", decision);
     }
 }

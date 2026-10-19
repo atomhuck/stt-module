@@ -93,7 +93,8 @@ final class StreamReplay {
                     "end", Support.round(refStart + refDuration, 3), "duration", Support.round(refDuration, 3),
                     "label", "Кандидат (эталон)", "candidate_similarity", null,
                     "interviewer_similarity", null, "source_speaker_id", null,
-                    "confidence", "эталон", "decision", "Эталон заранее взят из окна 20–30 с для воспроизведения файла",
+                    "confidence", "эталон", "confidence_percent", 100,
+                    "decision", "Эталон заранее взят из окна 20–30 с для воспроизведения файла",
                     "emitted_wall_s", Support.round(elapsed(), 3), "emitted_after_audio_s", Support.round(now, 3));
             emitted.add(reference);
             rows.add(reference);
