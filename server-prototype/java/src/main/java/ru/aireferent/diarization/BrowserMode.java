@@ -17,6 +17,7 @@ import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
@@ -29,9 +30,15 @@ final class BrowserMode {
     private final String preset;
     private final int threads, queueChunks;
     private final double threshold, settleSeconds;
+    private final boolean integrated;
+    private final String artemUrl;
     private volatile Interview interview;
 
-    BrowserMode(Map<String, String> options) {
+    BrowserMode(Map<String, String> options) { this(options, false); }
+
+    BrowserMode(Map<String, String> options, boolean integrated) {
+        this.integrated = integrated;
+        this.artemUrl = options.getOrDefault("artem-url", "ws://127.0.0.1:8080");
         dll = Support.path(options, "nemo-lib");
         gguf = Support.path(options, "nemo-model");
         speakerModel = Support.path(options, "speaker-model");
@@ -64,7 +71,7 @@ final class BrowserMode {
             if (active != null) active.requestStop("server_shutdown");
             server.stop(0);
         }));
-        System.out.println("Браузерный режим готов: http://localhost:8765");
+        System.out.println((integrated ? "Объединённый" : "Браузерный") + " режим готов: http://localhost:8765");
         System.out.println("Выберите весь экран со звуком и разрешите микрофон; эталон берётся из звука компьютера.");
         try {
             if (Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE))
@@ -85,8 +92,10 @@ final class BrowserMode {
                     String token = exchange.getRequestHeaders().getFirst("X-Session-Id");
                     reply(exchange, 200, status(token)); return;
                 }
-                if (path.equals("/") || path.equals("/app.js") || path.equals("/audio-worklet.js") || path.equals("/style.css")) {
-                    asset(exchange, path.equals("/") ? "index.html" : path.substring(1)); return;
+                if (path.equals("/") || path.equals("/app.js") || path.equals("/audio-worklet.js")
+                        || path.equals("/integrated-app.js") || path.equals("/integrated-worklet.js")
+                        || path.equals("/style.css")) {
+                    asset(exchange, path.equals("/") ? (integrated ? "integrated.html" : "index.html") : path.substring(1)); return;
                 }
             } else if (exchange.getRequestMethod().equals("POST")) {
                 if (path.equals("/api/enrollment/start")) {
@@ -109,15 +118,32 @@ final class BrowserMode {
                     long number;
                     try { number = Long.parseLong(sequence); }
                     catch (NumberFormatException e) { throw new HttpError(400, "Неверный номер чанка."); }
-                    byte[] bytes = exchange.getRequestBody().readNBytes(2 * CHUNK_SAMPLES + 2);
-                    if (bytes.length < 2 || bytes.length > 2 * CHUNK_SAMPLES || bytes.length % 2 != 0)
-                        throw new HttpError(400, "Ожидается PCM16 mono 16 кГц, до 0,64 с.");
+                    int bytesPerSample = 2;
+                    byte[] bytes = exchange.getRequestBody().readNBytes(bytesPerSample * CHUNK_SAMPLES + bytesPerSample);
+                    if (bytes.length < bytesPerSample || bytes.length > bytesPerSample * CHUNK_SAMPLES
+                            || bytes.length % bytesPerSample != 0)
+                        throw new HttpError(400, "Ожидается PCM16 16 кГц, до 0,64 с на источник.");
                     if (path.equals("/api/enrollment/audio")) active.enrollAudio(number, bytes);
                     else active.liveAudio(number, bytes);
                     reply(exchange, 200, Support.map("ok", true)); return;
                 }
                 if (path.equals("/api/enrollment/finish")) {
                     active.finishEnrollment(); reply(exchange, 200, active.status()); return;
+                }
+                if (integrated && path.equals("/api/question/asked")) {
+                    active.questionAsked(); reply(exchange, 200, active.status()); return;
+                }
+                if (integrated && path.equals("/api/question/skip")) {
+                    active.questionSkipped(); reply(exchange, 200, active.status()); return;
+                }
+                if (integrated && path.equals("/api/tts/event")) {
+                    var event = Support.JSON.readTree(exchange.getRequestBody());
+                    active.ttsEvent(event.path("event").asText("unknown"), event.path("question").asText(""));
+                    reply(exchange, 200, Support.map("ok", true)); return;
+                }
+                if (integrated && path.equals("/api/ui/seen")) {
+                    active.suggestionSeen(exchange.getRequestHeaders().getFirst("X-Event-Id"));
+                    reply(exchange, 200, Support.map("ok", true)); return;
                 }
                 if (path.equals("/api/finish")) {
                     String reason = exchange.getRequestHeaders().getFirst("X-Stop-Reason");
@@ -190,6 +216,7 @@ final class BrowserMode {
         long enrollmentSequence, liveSequence, acceptedSamples, droppedSamples, droppedChunks, overflowCount, maxDepth;
         String stopReason = "running";
         LiveSession session;
+        IntegrationBridge bridge;
         Thread worker;
         boolean stopRequested, resourcesClosed;
 
@@ -208,18 +235,20 @@ final class BrowserMode {
 
         synchronized Map<String, Object> status(String token) {
             if (id.equals(token)) lastContact = System.nanoTime();
-            return Support.map("session_id", id, "phase", phase, "role", role,
+            Map<String, Object> result = Support.map("session_id", id, "phase", phase, "role", role,
                     "audio_seconds", Support.round(audioSeconds, 3),
                     "enrollment_seconds", Support.round(reference.size() / (2.0 * Support.RATE), 3),
                     "queue_depth_chunks", queue.size(), "error", error,
                     "output_dir", phase.equals("finished") || phase.equals("error") ? outputDir.toString() : null);
+            if (bridge != null) result.put("integration", bridge.status());
+            return result;
         }
 
         synchronized void enrollAudio(long sequence, byte[] bytes) {
             if (!phase.equals("enrolling")) throw new HttpError(409, "Запись эталона сейчас недоступна.");
             if (sequence != enrollmentSequence) throw new HttpError(409, "Нарушен порядок чанков эталона.");
-            if (reference.size() + bytes.length > 60L * Support.RATE * 2)
-                throw new HttpError(413, "Эталон длиннее 60 секунд.");
+            if (reference.size() + bytes.length > 30L * Support.RATE * 2)
+                throw new HttpError(413, "Эталон длиннее 30 секунд.");
             reference.writeBytes(bytes);
             enrollmentSequence++;
             lastContact = System.nanoTime();
@@ -238,9 +267,13 @@ final class BrowserMode {
             }
             try {
                 session = new LiveSession(diarizer, extractor, candidate, threshold, outputDir,
-                        "browser_microphone_system_audio", "browser_microphone_system_audio",
-                        "browser_system_audio", "browser microphone + system audio", Support.RATE, 1,
+                        integrated ? "browser_mixed_microphone_system_audio" : "browser_microphone_system_audio",
+                        integrated ? "browser_mixed_stream" : "browser_microphone_system_audio",
+                        integrated ? "browser_microphone" : "browser_system_audio",
+                        integrated ? "browser microphone + system audio" : "browser microphone + system audio",
+                        Support.RATE, 1,
                         seconds, .64, settleSeconds, (System.nanoTime() - startupAt) / 1e9, preset, metrics());
+                if (integrated) bridge = new IntegrationBridge(outputDir, artemUrl, metrics());
                 phase = "live";
                 worker = new Thread(this::consume, "nemotron-browser-" + id.substring(0, 8));
                 worker.start();
@@ -269,6 +302,35 @@ final class BrowserMode {
             }
             acceptedSamples += chunk.length;
             maxDepth = Math.max(maxDepth, queue.size());
+            if (bridge != null) {
+                try { bridge.submit(item.firstSample(), chunk); }
+                catch (RuntimeException failure) {
+                    error = "Передача звука в STT остановилась: " + failure.getMessage();
+                    stopReason = "stt_overflow_or_bridge_error";
+                    stopRequested = true;
+                    phase = "stopping";
+                    notifyAll();
+                    throw new HttpError(409, error);
+                }
+            }
+        }
+
+        synchronized void questionAsked() {
+            if (bridge == null || !phase.equals("live")) throw new HttpError(409, "Интервью ещё не началось.");
+            bridge.questionAsked();
+        }
+
+        synchronized void questionSkipped() {
+            if (bridge == null || !phase.equals("live")) throw new HttpError(409, "Интервью ещё не началось.");
+            bridge.questionSkipped();
+        }
+
+        synchronized void suggestionSeen(String id) {
+            if (bridge != null) bridge.suggestionSeen(id);
+        }
+
+        synchronized void ttsEvent(String event, String question) {
+            if (bridge != null) bridge.ttsEvent(event, question);
         }
 
         synchronized void requestStop(String reason) {
@@ -289,23 +351,56 @@ final class BrowserMode {
         }
 
         private void consume() {
+            boolean bridgeFinished = false;
             try {
+                java.util.ArrayList<LiveMicrophone.AudioChunk> batch = new java.util.ArrayList<>(4);
+                long modelChunkIndex = 0;
                 while (true) {
                     LiveMicrophone.AudioChunk chunk = queue.poll(200, TimeUnit.MILLISECONDS);
                     if (chunk != null) {
-                        LiveSession.Update update = session.process(chunk, queue.size(), metrics());
-                        role = update.role(); audioSeconds = update.audioSeconds();
+                        batch.add(chunk);
+                        if (batch.size() >= 4) {
+                            LiveMicrophone.AudioChunk merged = AudioFrames.mergeForNemotron(batch, modelChunkIndex++);
+                            batch.clear();
+                            processNemotronChunk(merged);
+                        }
                     }
-                    synchronized (this) { if (stopRequested && queue.isEmpty()) break; }
+                    boolean shouldFinish;
+                    synchronized (this) { shouldFinish = stopRequested && queue.isEmpty(); }
+                    if (shouldFinish) {
+                        if (!batch.isEmpty()) {
+                            LiveMicrophone.AudioChunk merged = AudioFrames.mergeForNemotron(batch, modelChunkIndex++);
+                            batch.clear();
+                            processNemotronChunk(merged);
+                        }
+                        break;
+                    }
                 }
                 session.finish(metrics(), overflowCount == 0 && error == null);
+                if (bridge != null) {
+                    bridge.finish(audioSeconds, session.allSegments(), metrics());
+                    bridgeFinished = true;
+                    Object bridgeError = bridge.status().get("bridge_error");
+                    if (bridgeError != null && error == null) error = String.valueOf(bridgeError);
+                }
                 synchronized (this) { phase = error == null ? "finished" : "error"; }
                 System.out.println("Файлы результата: " + outputDir);
             } catch (Throwable failure) {
                 error = failure.toString(); phase = "error";
                 System.err.println("Ошибка обработки интервью: " + failure);
                 try { session.finish(metrics(), false); } catch (Exception finalError) { System.err.println(finalError); }
+                if (bridge != null && !bridgeFinished) {
+                    try { bridge.finish(audioSeconds, session.allSegments(), metrics()); }
+                    catch (Throwable bridgeFinishError) { System.err.println("Ошибка завершения STT: " + bridgeFinishError); }
+                }
             } finally { dispose(); }
+        }
+
+        private void processNemotronChunk(LiveMicrophone.AudioChunk chunk) throws Exception {
+            LiveSession.Update update = session.process(chunk, queue.size(), metrics());
+            role = update.role(); audioSeconds = update.audioSeconds();
+            if (bridge != null) bridge.onDiarization(update.segments(), update.activeSegments(),
+                    update.audioSeconds(), false, metrics());
         }
 
         synchronized void watchdog() {
@@ -325,6 +420,7 @@ final class BrowserMode {
             resourcesClosed = true;
             try { if (session != null) session.close(); }
             catch (Exception failure) { System.err.println(failure); }
+            if (bridge != null) bridge.close();
             extractor.release();
             diarizer.close();
         }

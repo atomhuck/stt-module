@@ -16,7 +16,8 @@ import java.util.Map;
 final class LiveSession implements AutoCloseable {
     record Capture(long capturedSamples, int capacity, long maxDepth, long overflowCount,
                    long droppedChunks, long droppedSamples, String stopReason, String error) {}
-    record Update(String role, double audioSeconds, List<Map<String, Object>> segments) {}
+    record Update(String role, double audioSeconds, List<Map<String, Object>> segments,
+                  List<Map<String, Object>> activeSegments) {}
 
     private final NemotronStream diarizer;
     private final OnlineRoles roles;
@@ -69,6 +70,7 @@ final class LiveSession implements AutoCloseable {
     String currentRole() { return currentRole; }
     Path outputDir() { return outputDir; }
     boolean isFinished() { return finished; }
+    List<Map<String, Object>> allSegments() { return new ArrayList<>(emitted); }
 
     private Map<String, Object> enrollment() {
         return Support.map("duration", Support.round(enrollmentSeconds, 3), "preloaded", false, "source", enrollmentSource);
@@ -158,7 +160,7 @@ final class LiveSession implements AutoCloseable {
         if (!active.isEmpty()) currentRole = String.valueOf(active.get(active.size() - 1).get("label"));
         else if (!newRows.isEmpty()) currentRole = String.valueOf(newRows.get(newRows.size() - 1).get("label"));
         else currentRole = "Ожидаем речь";
-        return new Update(currentRole, audioEnd, newRows);
+        return new Update(currentRole, audioEnd, newRows, active);
     }
 
     Map<String, Object> finish(Capture metrics, boolean success) throws Exception {

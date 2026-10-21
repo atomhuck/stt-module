@@ -9,8 +9,9 @@ public final class Main {
     public static void main(String[] args) {
         try {
             if (args.length == 0 || args[0].equals("--help") || args[0].equals("-h")) {
-                System.out.println("Использование: java -jar diarization-worker-1.0.0.jar browser|live|live-devices|stream|verify [параметры]\n"
+                System.out.println("Использование: java -jar diarization-worker-1.0.0.jar browser|integrated|live|live-devices|stream|verify [параметры]\n"
                         + "browser: --nemo-lib DLL --nemo-model GGUF --speaker-model ONNX --output-dir DIR [--queue-chunks N]\n"
+                        + "integrated: те же параметры, плюс [--artem-url ws://127.0.0.1:8080]\n"
                         + "live: --nemo-lib DLL --nemo-model GGUF --speaker-model ONNX --output-dir DIR [--mic-name NAME --queue-chunks N]\n"
                         + "live-devices: показать доступные микрофоны\n"
                         + "stream: --audio WAV --nemo-lib DLL --nemo-model GGUF --speaker-model ONNX --output-dir DIR\n"
@@ -22,6 +23,7 @@ public final class Main {
             Map<String, String> options = Support.options(rest);
             switch (args[0]) {
                 case "browser" -> new BrowserMode(options).run();
+                case "integrated" -> new BrowserMode(options, true).run();
                 case "live" -> new LiveMicrophone(options).run();
                 case "live-devices" -> MicrophoneInput.printDevices();
                 case "stream" -> new StreamReplay(options).run();

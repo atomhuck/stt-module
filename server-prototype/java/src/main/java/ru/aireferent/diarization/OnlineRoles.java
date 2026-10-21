@@ -9,7 +9,7 @@ import java.util.Map;
 
 final class OnlineRoles {
     private static final double MIN_STABLE_EVIDENCE_SECONDS = 2.5;
-    private static final double MIN_NEW_GROUP_SECONDS = 3.0;
+    private static final double MIN_NEW_GROUP_SECONDS = 2.5;
     private static final class Interviewer {
         final int number;
         final List<float[]> embeddings = new ArrayList<>();
@@ -48,6 +48,7 @@ final class OnlineRoles {
     Map<String, Object> preview(float[] audio, double start, double end, String source) {
         String label = stableRole(source);
         String basis;
+        Double candidateScore = null, bestScore = null;
         if (label != null) basis = "speaker ID в текущей потоковой сессии";
         else {
             float[] embedding = Support.embedding(extractor, audio, Math.max(start, end - 2.0), end, 0);
@@ -55,18 +56,23 @@ final class OnlineRoles {
                 label = "Не определено";
                 basis = "ожидание достаточного фрагмента";
             } else {
-                double candidateScore = Support.dot(candidate, embedding);
-                int best = -1;
-                double bestScore = Double.NEGATIVE_INFINITY;
+                candidateScore = Support.dot(candidate, embedding);
+                int bestIndex = -1;
+                double maxInterviewerScore = Double.NEGATIVE_INFINITY;
                 for (int i = 0; i < interviewers.size(); i++) {
                     double score = interviewers.get(i).similarity(embedding);
-                    if (score > bestScore) { best = i; bestScore = score; }
+                    if (score > maxInterviewerScore) {
+                        bestIndex = i;
+                        maxInterviewerScore = score;
+                    }
                 }
-                if (candidateScore >= threshold && (best < 0 || candidateScore >= bestScore)) {
+                if (bestIndex >= 0) bestScore = maxInterviewerScore;
+                if (candidateScore >= threshold && (bestScore == null || candidateScore - bestScore >= .05)) {
                     label = "Кандидат";
                     basis = "предварительное сравнение голосов";
-                } else if (best >= 0 && bestScore >= threshold && bestScore > candidateScore) {
-                    label = "Интервьюер " + interviewers.get(best).number;
+                } else if (bestIndex >= 0 && bestScore != null && bestScore >= threshold
+                        && bestScore - candidateScore >= .05) {
+                    label = "Интервьюер " + interviewers.get(bestIndex).number;
                     basis = "предварительное сравнение голосов";
                 } else {
                     label = "Не определено";
@@ -75,7 +81,9 @@ final class OnlineRoles {
             }
         }
         return Support.map("start", Support.round(start, 3), "observed_end", Support.round(end, 3),
-                "source_speaker_id", source, "label", label, "status", "предварительно", "basis", basis);
+                "source_speaker_id", source, "label", label, "status", "предварительно", "basis", basis,
+                "candidate_similarity", candidateScore == null ? null : Support.round(candidateScore, 4),
+                "interviewer_similarity", bestScore == null ? null : Support.round(bestScore, 4));
     }
 
     Map<String, Object> classify(float[] audio, double start, double end, String source) {
@@ -90,20 +98,28 @@ final class OnlineRoles {
         String stable = stableRole(source);
         double duration = end - start;
         String label, decision, confidence;
-        boolean confident = duration >= 2.5;
+        boolean candidateMatch = candidateScore != null && candidateScore >= threshold
+                && (bestScore == null || candidateScore - bestScore >= .05);
+        boolean interviewerMatch = bestScore != null && bestScore >= threshold
+                && (candidateScore == null || bestScore - candidateScore >= .05);
 
-        if (candidateScore != null && candidateScore >= threshold && (bestScore == null || candidateScore >= bestScore)) {
-            label = "Кандидат";
-            decision = "Сходство с эталоном выше порога";
-            confidence = confident ? "высокая" : "средняя";
-            remember(source, label, duration);
-        } else if (bestScore != null && bestScore >= threshold && (candidateScore == null || bestScore > candidateScore)) {
+        if (candidateMatch) {
+            remember(source, "Кандидат", duration);
+            boolean confirmed = duration >= MIN_STABLE_EVIDENCE_SECONDS || "Кандидат".equals(stableRole(source));
+            label = confirmed ? "Кандидат" : "Не определено";
+            decision = confirmed ? "Сходство с эталоном подтверждено порогом и достаточной речью"
+                    : "Сходство с эталоном предварительное; накапливаем 2,5 с чистой речи speaker ID";
+            confidence = confirmed ? (duration >= MIN_STABLE_EVIDENCE_SECONDS ? "высокая" : "средняя") : "низкая";
+        } else if (interviewerMatch) {
             Interviewer group = interviewers.get(best);
-            label = "Интервьюер " + group.number;
-            decision = "Совпадение с группой интервьюера";
-            confidence = confident ? "высокая" : "средняя";
+            String groupLabel = "Интервьюер " + group.number;
+            remember(source, groupLabel, duration);
+            boolean confirmed = duration >= MIN_STABLE_EVIDENCE_SECONDS || groupLabel.equals(stableRole(source));
+            label = confirmed ? groupLabel : "Не определено";
+            decision = confirmed ? "Совпадение с группой интервьюера подтверждено достаточной речью"
+                    : "Сходство предварительное; накапливаем 2,5 с чистой речи speaker ID";
+            confidence = confirmed ? (duration >= MIN_STABLE_EVIDENCE_SECONDS ? "высокая" : "средняя") : "низкая";
             if (duration >= 1.5) group.embeddings.add(embedding);
-            remember(source, label, duration);
         } else if (stable != null) {
             label = stable;
             decision = "speaker ID ранее подтверждён голосовым совпадением";

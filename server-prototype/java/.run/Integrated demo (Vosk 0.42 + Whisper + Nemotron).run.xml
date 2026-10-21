@@ -1,0 +1,12 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Integrated demo (Vosk 0.42 + Whisper + Nemotron)" type="Application" factoryName="Application">
+    <option name="ALTERNATIVE_JRE_PATH" value="23 (2)" />
+    <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+    <option name="MAIN_CLASS_NAME" value="ru.aireferent.diarization.DemoLauncher" />
+    <module name="diarization-worker" />
+    <option name="VM_PARAMETERS" value="-Dfile.encoding=UTF-8 -Dsun.stdout.encoding=UTF-8 -Dsun.stderr.encoding=UTF-8" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>
