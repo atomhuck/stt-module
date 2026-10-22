@@ -1,0 +1,44 @@
+openapi: 3.1.0
+info:
+  title: Локальный HTTP API сервиса интервью
+  version: 1.0.0
+  description: |
+    HTTP-маршрут Spring Boot сервиса vosk-stt-demo. Само интервью и потоковое
+    распознавание используют WebSocket; их сообщения описаны в websocket.md.
+    report-download=false скрывает ссылку и делает файл недоступным.
+servers:
+  - url: http://127.0.0.1:8080
+security: []
+paths:
+  /api/reports/{name}:
+    get:
+      operationId: downloadInterviewReport
+      summary: Скачать ранее созданный Excel-отчёт
+      description: |
+        Имя должно соответствовать шаблону Interview_<имя>.xlsx, где <имя>
+        содержит только буквы, цифры, подчёркивание и дефис. При выключенном
+        скачивании, неподходящем имени или отсутствии файла возвращается 404.
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Имя файла из поля report.excel.file события WebSocket.
+          schema:
+            type: string
+            pattern: '^Interview_[\p{L}\p{N}_-]+\.xlsx$'
+          example: Interview_2026-10-22_Иван_Петров.xlsx
+      responses:
+        '200':
+          description: Файл Excel
+          headers:
+            Content-Disposition:
+              description: Заголовок attachment с именем файла UTF-8.
+              schema:
+                type: string
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Скачивание выключено, имя недопустимо или файла нет.

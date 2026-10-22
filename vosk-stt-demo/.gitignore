@@ -1,0 +1,8 @@
+models/*
+!models/.gitkeep
+target/
+.idea/
+*.iml
+reports/
+__pycache__/
+*.pyc

@@ -1,0 +1,338 @@
+# вид;каноническое имя;варианты через |   (term, slang, hedge, ignore)
+# Варианты — русская транскрипция того, как Vosk слышит английские термины.
+
+# ---------- Платформа Java / JVM ----------
+term;Java;java|джава|джейва
+term;JVM;jvm|джейвиэм|джи ви эм|джава виртуальная машина|виртуальная машина джава|виртуальная машина java|виртуальная машина
+term;JRE;jre|джи эр и|джава рантайм|среда выполнения java|среда выполнения
+term;JDK;jdk|джи ди кей|джейдикей|комплект разработчика|набор разработчика
+term;javac;javac|джавак|компилятор джава|компилятор java
+term;байткод;байткод|байт код|bytecode
+term;JIT;jit|джит|джи ай ти|джит компилятор|just in time|компиляция на лету
+term;сборщик мусора;gc|джи си|сборщик мусора|сборка мусора|garbage collector|гарбидж коллектор|garbage collection
+term;heap;heap|хип|куча
+term;stack;stack|стэк|стек|стек вызовов
+term;metaspace;metaspace|метаспейс|мета спейс
+term;classloader;classloader|class loader|загрузчик классов|класс лоадер|кластлоадер
+term;утечка памяти;memory leak|мемори лик|утечка памяти|утечки памяти
+term;OutOfMemoryError;outofmemoryerror|oom|аут оф мемори|нехватка памяти
+term;stacktrace;stacktrace|стектрейс|стек трейс|трассировка стека
+term;модель памяти;jmm|java memory model|модель памяти|джейэмэм
+term;happens-before;happens before|хэппенс бифор|хепенс бефор|хапенс бифор
+term;профилировщик;профайлер|профилировщик|profiler|профилирование
+term;heap dump;heap dump|хип дамп|дамп памяти|thread dump|тред дамп|дамп потоков
+
+# ---------- ООП, язык ----------
+term;инкапсуляция;инкапсуляция|encapsulation
+term;наследование;наследование|inheritance|extends|экстендс
+term;полиморфизм;полиморфизм|polymorphism
+term;абстракция;абстракция|abstraction
+term;интерфейс;интерфейс|interface
+term;абстрактный класс;абстрактный класс|abstract class
+term;перегрузка;перегрузка|overload|оверлоад
+term;переопределение;переопределение|override|оверрайд
+term;SOLID;solid|солид
+term;принцип Лисков;принцип подстановки лисков|подстановки лисков|liskov|лисков
+term;DI;dependency injection|инъекция зависимостей|внедрение зависимостей|дипенденси инжекшн
+term;IoC;ioc|инверсия управления|inversion of control
+term;generics;generics|дженерики|обобщения|обобщённые типы
+term;type erasure;type erasure|стирание типов
+term;wildcard;wildcard|вайлдкард
+term;лямбда;лямбда|lambda|лямбда выражение
+term;Stream API;stream api|стрим апи|стримы|стрим
+term;Optional;optional|оптионал
+term;immutable;immutable|иммутабельный|иммутабельность|неизменяемый|неизменяемость
+term;record;record|рекорд
+term;enum;enum|энум|перечисление
+term;примитив;примитив|примитивный тип|примитивные типы
+term;boxing;boxing|боксинг|автоупаковка|unboxing|анбоксинг|автораспаковка
+term;ссылка;ссылка|ссылочный тип|reference|референс
+term;String;string|строка|string pool|пул строк|стринг
+
+# ---------- Коллекции ----------
+term;коллекции;коллекции|collections|collection|коллекшн
+term;ArrayList;arraylist|эррей лист|аррей лист
+term;LinkedList;linkedlist|линкед лист|связный список
+term;HashMap;hashmap|хэшмап|хешмап|хэш мап|хеш мап|хэш мэп|хеш мэп|хэш таблица|хеш таблица
+term;HashSet;hashset|хэшсет|хэш сет|хеш сет
+term;TreeMap;treemap|три мап|три мэп|красно чёрное дерево
+term;ConcurrentHashMap;concurrenthashmap|конкаренти хэш мэп|конкарент хеш мап|конкаренти хеш мап
+term;equals;equals|иквалс|эквалс
+term;hashCode;hashcode|хэшкод|хешкод|хэш код|хеш код
+term;коллизия;коллизия|collision
+term;load factor;load factor|коэффициент загрузки|лоад фактор
+term;итератор;итератор|iterator
+term;fail-fast;fail fast|фейл фаст
+term;Comparable;comparable|компарабл|comparator|компаратор
+
+# ---------- Исключения ----------
+term;исключение;исключение|exception|эксепшн|эксепшен|исключения
+term;checked;checked|чекд|проверяемое исключение|проверяемые исключения
+term;unchecked;unchecked|анчекд|непроверяемое|runtime exception|рантайм эксепшн
+term;try-with-resources;try with resources|трай виз ресорсез
+term;finally;finally|файнали
+term;NPE;npe|эн пи и|null pointer|нулл поинтер|нулевой указатель
+term;AutoCloseable;autocloseable|автоклоузабл|closeable
+
+# ---------- Многопоточность ----------
+term;поток;поток|thread|тред|потоки
+term;Runnable;runnable|раннабл
+term;synchronized;synchronized|синхронайзд|синхронизация|синхронизированный
+term;volatile;volatile|волатайл|волатильный
+term;deadlock;deadlock|дедлок|взаимная блокировка|взаимоблокировка
+term;race condition;race condition|рейс кондишен|гонка данных|состояние гонки|гонка
+term;mutex;mutex|мьютекс
+term;semaphore;semaphore|семафор
+term;ExecutorService;executorservice|экзекьютор|executor|пул потоков|thread pool|тред пул
+term;CompletableFuture;completablefuture|комплитейбл фьючер|комплитабл фьюче|future|фьючер
+term;атомарность;atomic|атомик|атомарный|атомарность|атомарная операция
+term;CAS;cas|компар энд своп|compare and swap
+term;lock;lock|лок|блокировка|reentrantlock|реентрант лок
+term;virtual threads;virtual threads|виртуальные потоки|виртуальный поток|loom|лум
+term;асинхронность;асинхронный|асинхронность|async|асинк
+term;потокобезопасность;thread safe|тред сейф|потокобезопасный|потокобезопасность
+
+# ---------- Spring ----------
+term;Spring;spring|спринг
+term;Spring Boot;spring boot|спринг бут
+term;bean;bean|бин
+term;контейнер;контейнер|applicationcontext|эпликейшн контекст|ioc контейнер
+term;autowired;autowired|автовайред|автоваер
+term;Transactional;transactional|транзакшнл|транзакционный|транзакционность
+term;AOP;aop|аоп|аспектно ориентированное|прокси|proxy|прокси объект
+term;starter;starter|стартер
+term;actuator;actuator|актуатор
+term;controller;controller|restcontroller|рест контроллер|спринг контроллер
+term;service;service|сервис
+term;repository;repository|репозиторий
+term;scope;scope|скоуп
+term;singleton;singleton|синглтон
+term;конфигурация;configuration|конфигурация|конфиг|автоконфигурация|autoconfiguration
+term;Spring Security;spring security|спринг секьюрити
+term;Spring Data;spring data|спринг дата
+term;profile;profile|профиль|профили
+
+# ---------- Базы данных / SQL ----------
+term;SQL;sql|эс кью эль|сиквел|сиквэл
+term;индекс;индекс|index|индексы
+term;JOIN;join|джойн|соединение таблиц
+term;первичный ключ;первичный ключ|primary key|праймари кей
+term;внешний ключ;внешний ключ|foreign key|форин кей
+term;транзакция;транзакция|transaction|транзакшн
+term;ACID;acid|акид|эйсид
+term;уровень изоляции;уровень изоляции|isolation level|изолейшн левел|изоляция транзакций
+term;грязное чтение;грязное чтение|dirty read|фантомное чтение|неповторяющееся чтение
+term;нормализация;нормализация|normalization|денормализация
+term;EXPLAIN;explain|эксплейн|план запроса|план выполнения
+term;B-tree;b tree|би три|б дерево|btree
+term;N+1;n плюс один|n+1|эн плюс один|проблема n плюс один
+term;lazy loading;lazy|лейзи|ленивая загрузка|ленивый
+term;eager;eager|иджер|жадная загрузка
+term;JPA;jpa|джейпиэй|джи пи эй
+term;Hibernate;hibernate|хибернейт|хайбернейт
+term;entity;entity|энтити|сущность
+term;ORM;orm|орм
+term;миграции;миграция|миграции|migration|flyway|флайвей|liquibase|ликвибейс
+term;пул соединений;пул соединений|connection pool|hikari|хикари
+term;PostgreSQL;postgresql|postgres|постгрес|постгри|постгресс
+term;репликация;репликация|replication|реплика
+term;шардирование;шардирование|шардинг|sharding|партиционирование|partitioning
+term;блокировка строк;оптимистичная блокировка|оптимистическая блокировка|пессимистичная блокировка|пессимистическая блокировка|optimistic lock|select for update
+term;реляционная база;реляционная|nosql|нон эс кью эль|база данных|бд
+
+# ---------- HTTP / REST / безопасность ----------
+term;HTTP;http|хттп|эйч ти ти пи|https
+term;REST;rest|рест|ресту
+term;идемпотентность;идемпотентность|идемпотентный|idempotent|идемпотентности
+term;статус-код;статус код|код ответа|status code
+term;HTTP-метод;get|гет|post|пост|put|пут|patch|патч|delete|делит
+term;заголовок;заголовок|header|хедер|хедеры
+term;JSON;json|джейсон|джисон
+term;API;api|апи|эй пи ай
+term;endpoint;endpoint|эндпоинт|энд поинт
+term;OpenAPI;openapi|опен апи|swagger|свагер|свэггер
+term;пагинация;пагинация|pagination|постраничная
+term;CORS;cors|корс
+term;аутентификация;аутентификация|authentication
+term;авторизация;авторизация|authorization
+term;JWT;jwt|джот|джей даблю ти
+term;OAuth;oauth|оаут|о аут
+term;токен;токен|token
+term;TLS;tls|тлс|ssl|эс эс эл|сертификат
+term;CSRF;csrf|сиэсэрэф|xss|икс эс эс|межсайтовый
+term;SQL-инъекция;sql инъекция|сиквел инъекция|sql injection|инъекция
+term;хеширование;хеш|хэш|hash|хеширование|хэширование|bcrypt|бикрипт|соль|salt
+
+# ---------- Архитектура / распределённые системы ----------
+term;микросервис;микросервис|микросервисы|microservice|микросервисная
+term;монолит;монолит|monolith
+term;брокер сообщений;брокер сообщений|брокер|message broker|очередь сообщений|очередь
+term;Kafka;kafka|кафка|кафку
+term;RabbitMQ;rabbitmq|рэббит|рэббитмку|кролик
+term;событие;событие|event|ивент|events
+term;outbox;outbox|аутбокс|transactional outbox
+term;сага;сага|saga
+term;eventual consistency;eventual consistency|согласованность в конечном счёте|конечная согласованность|итуал консистенси
+term;теорема CAP;теорема cap|cap теорема|кап теорема
+term;консенсус;консенсус|consensus|raft|рафт|paxos
+term;кэш;кэш|кеш|cache|кэширование|кеширование
+term;Redis;redis|редис
+term;TTL;ttl|тэтээл|время жизни
+term;балансировщик;балансировщик|load balancer|лоад балансер|балансировка нагрузки
+term;circuit breaker;circuit breaker|сёркит брейкер|предохранитель|resilience
+term;retry;retry|ретрай|повтор|повторы|backoff|бэкофф
+term;timeout;timeout|таймаут|тайм аут
+term;rate limit;rate limit|рейт лимит|ограничение частоты|throttling|троттлинг
+term;backpressure;backpressure|бэкпрешер|противодавление
+term;Docker;docker|докер|контейнеризация
+term;Kubernetes;kubernetes|кубернетес|кубер|k8s|к8с
+term;CI/CD;ci cd|си ай си ди|пайплайн|pipeline|конвейер
+term;идемпотентный ключ;idempotency key|ключ идемпотентности
+term;reconciliation;reconciliation|сверка|реконсиляция|компенсация|compensation
+term;SLA/SLO;sla|slo|sli|слай|эс эл ай|эс эл о
+term;масштабирование;масштабирование|scaling|горизонтальное|вертикальное|scalability
+
+# ---------- Тестирование ----------
+term;unit-тест;unit test|юнит тест|юнит|модульный тест|модульное тестирование|unit
+term;интеграционный тест;интеграционный тест|integration test|интеграционное тестирование
+term;mock;mock|мок|mockito|мокито|заглушка|stub|стаб
+term;JUnit;junit|джейюнит|джунит
+term;TDD;tdd|тдд|разработка через тестирование
+term;пирамида тестирования;пирамида тестирования|test pyramid
+term;покрытие;покрытие|coverage|ковередж
+term;Testcontainers;testcontainers|тест контейнерс
+term;assert;assert|ассерт|assertion|проверка утверждений
+
+# ---------- Git ----------
+term;Git;git|гит
+term;commit;commit|коммит|коммиты
+term;branch;branch|бранч|ветка|ветки
+term;merge;merge|мердж|слияние
+term;rebase;rebase|ребейз
+term;pull request;pull request|пулл реквест|пул реквест|merge request|мердж реквест
+term;cherry-pick;cherry pick|черри пик
+term;revert;revert|ревёрт|реверт|откат коммита
+term;конфликт слияния;конфликт|конфликты|conflict
+
+# ---------- Наблюдаемость / эксплуатация ----------
+term;логи;лог|логи|логирование|logging|логгер
+term;метрики;метрика|метрики|metrics
+term;трейсинг;трейсинг|tracing|трассировка|распределённая трассировка
+term;Prometheus;prometheus|прометеус
+term;Grafana;grafana|графана
+term;алерт;алерт|alert|алерты|alerting
+term;инцидент;инцидент|incident|постмортем|postmortem
+term;latency;latency|латенси|задержка|латентность|p99|перцентиль
+term;rollback;rollback|роллбэк|откат|роллбек
+
+# ---------- Профессиональный сленг ----------
+slang;деплой;деплой|deploy|деплоить|задеплоить|задеплоил|деплоим|деплоя
+slang;прод;прод|production|продакшен|продакшн|продакшене
+slang;баг;баг|баги|bug|багов
+slang;фича;фича|фичи|feature|фичу
+slang;фикс;фикс|fix|фиксить|пофиксить|багфикс|hotfix|хотфикс
+slang;дебаг;дебаг|debug|дебажить|отладка|отлаживать|дебаггер
+slang;легаси;легаси|legacy|унаследованный код|легаси код
+slang;рефакторинг;рефакторинг|refactoring|рефакторить|отрефакторить
+slang;билд;билд|build|собрать проект|сборка проекта|билдить
+slang;релиз;релиз|release|релизить|релизный
+slang;ревью;ревью|review|код ревью|code review|ревьюить
+slang;тикет;тикет|ticket|таска|задача в трекере|jira|джира
+slang;бэкенд;бэкенд|бэкэнд|backend|бекенд
+slang;фронтенд;фронтенд|frontend|фронт
+slang;стейджинг;стейджинг|staging|стейдж|stage|тестовый стенд|стенд
+slang;оверхед;оверхед|overhead|накладные расходы
+slang;бойлерплейт;бойлерплейт|boilerplate|шаблонный код
+slang;воркер;воркер|worker|воркеры
+slang;спринт;спринт|sprint|скрам|scrum|аджайл|agile|канбан|kanban|стендап|standup
+slang;костыль;костыль|костыли|workaround|воркэраунд|хак
+slang;рантайм;рантайм|runtime|в рантайме
+slang;юзер;юзер|юзеры
+slang;реквест;реквест|request|респонс|response
+slang;мигрировать;мигрировать|мигрируем|смигрировать|апгрейд|upgrade|апдейт|update
+slang;выкатить;выкатить|выкатили|выкатка|раскатить|раскатка|катить
+slang;залить;залить|залил|запушить|пуш|push|пушить|чекаут|checkout
+slang;сервак;сервак|серверок
+
+# ---------- Неуверенность / слова-паразиты ----------
+hedge;ну;ну|ээ|эм|мм
+hedge;как бы;как бы|типа|как-то так|как то так
+hedge;вроде;вроде|вроде бы|вроде как
+hedge;наверное;наверное|наверно|кажется|по моему|если не ошибаюсь|скорее всего|может быть|не уверен|не уверена
+hedge;короче;короче|в общем|в общем то|это самое|так сказать|честно говоря
+
+# ---------- «Не знаю» ----------
+ignore;не знаю;не знаю|не помню|затрудняюсь|без понятия|понятия не имею|не сталкивался|не сталкивалась|не изучал|не изучала|не слышал|не слышала|не работал с|не работала с|не готов ответить|пас|не могу сказать|не разбираюсь|не проходили
+
+# ---------- Дополнения под банк вопросов (термины из эталонов и их произношение) ----------
+term;int;int|инт|булеан|boolean|булиан|byte|long|лонг|double|дабл|char|примитивные
+term;Integer;integer|интеджер|интегер|обёртка|обертка|wrapper|класс обёртка
+term;static;static|статик|статический|статика
+term;final;final|файнал|финальный|финал
+term;throws;throws|трос|throw|катч|catch|try|трай|выбросить|перехватить
+term;NullPointerException;nullpointerexception|нулл поинтер эксепшн|null pointer exception
+term;PECS;pecs|пекс|producer extends|consumer super|продюсер экстендс|консьюмер супер
+term;bounded type;bounded|баундед|ограниченный тип|extends super|верхняя граница|нижняя граница
+term;instanceof;instanceof|инстанс оф|инстансоф
+term;инвариантность;инвариантность|инвариантный|invariance
+term;propagation;propagation|пропагейшн|пропагация|распространение транзакции
+term;REQUIRED;required|реквайред|реквайрд|requires|реквайрс|requires new|реквайрс нью|requires_new
+term;NESTED;nested|нестед|вложенная транзакция|вложенные транзакции
+term;savepoint;savepoint|сейвпоинт|сейв поинт|точка сохранения
+term;изоляция;isolation|айсолейшн|изоляция|read committed|рид коммитед|repeatable read|репитабл рид|serializable|сериализабл|read uncommitted
+term;lost update;lost update|потерянное обновление|потерянные обновления
+term;фантомы;phantom|фантом|фантомы
+term;fetch join;fetch join|фетч джойн|fetch|фетч|join fetch
+term;EntityGraph;entitygraph|энтити граф|граф сущностей
+term;batch;batch|батч|пакетная|batch fetching|батчинг
+term;H2;h2|аш два|эйч ту
+term;Callable;callable|коллабл|каллабл
+term;ABA;aba|аба|проблема aba
+term;AtomicInteger;atomicinteger|атомик интеджер|атомик инт
+term;tryLock;trylock|трай лок|таймаут блокировки
+term;contention;contention|контеншн|конкуренция за блокировку
+term;shutdown;shutdown|шатдаун|awaittermination|завершение пула|graceful shutdown|грейсфул
+term;TreeSet;treeset|три сет
+term;LinkedHashMap;linkedhashmap|линкед хэш мап|линкед хеш мап
+term;Set;set|сет|множество
+term;Map;map|мэп|мап|словарь
+term;List;list|лист|список
+term;Object;object|класс object
+term;Argon2id;argon2id|аргон|argon2|bcrypt|scrypt|эс крипт|алгоритм хеширования паролей
+term;SHA;sha|ша|sha 256|ша 256|md5|мд5
+term;JWT-claims;issuer|издатель|audience|аудитория|claims|клеймс|подпись токена
+term;IDOR;idor|айдор|bola|бола|идор|broken object level authorization
+term;брутфорс;brute force|брутфорс|перебор паролей|credential stuffing
+term;моделирование угроз;threat modeling|моделирование угроз|сет моделинг|угрозы
+term;strangler;strangler|стренглер|душитель|strangler fig|постепенное выделение
+term;expand-contract;expand contract|экспанд контракт|backfill|бэкфил|бэкфилл|dual write|двойная запись
+term;bounded context;bounded context|баундед контекст|ограниченный контекст|доменная область|domain driven|ddd|дддд|предметная область
+term;модульный монолит;модульный монолит|modular monolith
+term;flaky;flaky|флэки|флейки|нестабильный тест|нестабильные тесты|плавающий тест
+term;MockMvc;mockmvc|мок эм ви си|мок мвс|webmvctest|веб мвс тест|springboottest|спринг бут тест
+term;bulkhead;bulkhead|балкхед|изоляция ресурсов|переборки
+term;at-least-once;at least once|эт лист ванс|как минимум один раз|минимум один раз|at most once|exactly once|эксактли ванс|ровно один раз|доставка
+term;inbox;inbox|инбокс|deduplication|дедупликация|дедуплицировать|replay|реплей|переигрывание
+term;offset;offset|оффсет|смещение|consumer group|консьюмер груп|партиция|partition|партишен
+term;jitter;jitter|джиттер|exponential backoff|экспоненциальная задержка|экспоненциальный бэкофф
+term;chaos engineering;chaos|хаос инжиниринг|хаос тестирование|chaos engineering
+term;feature flag;feature flag|фича флаг|фича флажок|флаг фичи|переключатель функции
+term;rolling deployment;rolling|роллинг|rolling deployment|роллинг деплой|канареечный|canary|канарейка|blue green|блю грин|постепенное развёртывание
+term;ControllerAdvice;controlleradvice|контроллер эдвайс|exceptionhandler|эксепшн хэндлер|глобальный обработчик
+term;DTO;dto|дто|ди ти оу|data transfer object
+term;correlation id;correlation id|корреляция|корреляционный идентификатор|correlation|траце id|trace id
+term;trace;trace|трейс|traces|спан|span|opentelemetry|опентелеметри
+term;blameless;blameless|блэймлесс|без поиска виноватых|postmortem|разбор инцидента
+term;CPU;cpu|цпу|процессор|загрузка процессора
+term;heap analysis;oome|dominator|доминатор|retained|mat|memory analyzer|мемори анализер|gc roots|корни сборщика|анализ дампа
+term;Xmx;xmx|икс эм икс|размер кучи|jvm флаги|флаги jvm
+term;throughput;throughput|пропускная способность|троупут|rps|эрпиэс
+term;reactive;reactive|реактивный|реактивное программирование|webflux|вебфлакс|reactor|реактор
+term;coupling;coupling|связность|зацепление|cohesion|сцепление
+term;DDL;ddl|дидиэл|alter table|схема базы|изменение схемы
+term;cardinality;cardinality|кардинальность|селективность|статистика оптимизатора
+term;SQL-запрос;select|селект|where|вэа|group by|груп бай|having|хэвинг|insert|инсерт|update|апдейт|delete|union|подзапрос
+term;application.yml;yml|ямл|yaml|properties|пропертис|application properties|application yml|конфигурационный файл
+term;Location;location|локейшн|created|201|двести один|заголовок location
+term;framework;framework|фреймворк
+term;container-image;container|имидж|dockerfile|докерфайл

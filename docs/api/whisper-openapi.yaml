@@ -1,0 +1,102 @@
+openapi: 3.1.0
+info:
+  title: Локальный HTTP API Whisper
+  version: 1.0.0
+  description: |
+    Контракт tools/whisper_server.py. Это необязательный второй проход
+    распознавания после решения по ответу. Сервер по умолчанию слушает
+    127.0.0.1:9000. PCM должен быть 16 кГц, 16 бит, little-endian, моно.
+    Сервер отбрасывает последний байт тела нечётной длины.
+servers:
+  - url: http://127.0.0.1:9000
+security: []
+paths:
+  /:
+    get:
+      operationId: whisperHealth
+      summary: Проверить доступность HTTP-сервера
+      responses:
+        '200':
+          description: Сервер принимает соединения; готовность модели этим ответом не проверяется.
+          content:
+            text/plain:
+              schema:
+                type: string
+                const: ok
+  /transcribe:
+    post:
+      operationId: transcribeAudio
+      summary: Получить текст ответа
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+            example: 'Бинарный PCM16 без WAV-заголовка'
+      responses:
+        '200':
+          description: Текст UTF-8
+          content:
+            text/plain:
+              schema:
+                type: string
+        '500':
+          description: Ошибка распознавания; тело содержит текст исключения.
+          content:
+            text/plain:
+              schema:
+                type: string
+  /transcribe-json:
+    post:
+      operationId: transcribeAudioDetailed
+      summary: Получить текст и слова с временными метками
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+      responses:
+        '200':
+          description: Детализированная расшифровка
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [text, words]
+                properties:
+                  text:
+                    type: string
+                  words:
+                    type: array
+                    items:
+                      type: object
+                      required: [word, start, end, confidence]
+                      properties:
+                        word:
+                          type: string
+                        start:
+                          type: number
+                          description: Начало слова в секундах от начала переданного фрагмента.
+                        end:
+                          type: number
+                          description: Конец слова в секундах от начала переданного фрагмента.
+                        confidence:
+                          type: number
+                          description: Оценка модели, без обещания калибровки.
+              example:
+                text: Java — это платформа
+                words:
+                  - word: Java
+                    start: 0.12
+                    end: 0.45
+                    confidence: 0.92
+        '500':
+          description: Ошибка распознавания; тело содержит текст исключения.
+          content:
+            text/plain:
+              schema:
+                type: string
