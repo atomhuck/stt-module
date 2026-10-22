@@ -5,8 +5,8 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if (-not $Source) {
-    $workspace = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..\..')).Path
-    $Source = Join-Path $workspace 'vosk-stt-demo\models\vosk-model-ru-0.42'
+    $repository = (Resolve-Path (Join-Path $PSScriptRoot '..\..\..')).Path
+    $Source = Join-Path $repository 'vosk-stt-demo\models\vosk-model-ru-0.42'
 }
 $sourceRoot = (Resolve-Path -LiteralPath $Source).Path.TrimEnd('\')
 if (-not (Test-Path -LiteralPath (Join-Path $sourceRoot 'graph\words.txt'))) {

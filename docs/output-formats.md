@@ -15,3 +15,7 @@
 `integrated` дополнительно пишет `stt-events.jsonl` (Vosk), `timeline-events.jsonl` (события ролей, подсказок, TTS и решений), `timeline.json` (слова с временем и статусом роли) и `integration-summary.json` (задержки и состояние мостов). Их назначение и метрики описаны в [инструкции демо](../server-prototype/java/INTEGRATED_DEMO.md#результаты-и-метрики).
 
 `verify` сохраняет `*.verified.json` с параметрами проверки и событиями, а также `*.verified.csv`. Колонки CSV: `start`, `end`, `duration`, `label`, `candidate_similarity`, `interviewer_similarity`, `source_speaker_id`, `confidence`, `decision`. CSV записывается с UTF-8 BOM для табличных редакторов.
+
+## Excel-отчёт интервью
+
+`vosk-stt-demo` сохраняет `Interview_<дата>_<кандидат>.xlsx` в `interview.reports-dir` (по умолчанию `./reports` от рабочего каталога процесса). При совпадении имени добавляется числовой суффикс, прежний файл не перезаписывается. Отчёт содержит итоговые оценки, сведения по вопросам и попыткам, а также лист методики с настройками; эталонные ответы могут присутствовать в файле. Событие WebSocket `report` возвращает `excel.file`, `excel.path` и `excel.url` при успешной выгрузке или `excelError` при ошибке. При `interview.report-download=false` URL равен `null`, а HTTP-скачивание отключено. [Контракт скачивания](api/interview-openapi.yaml) описывает код 200 и условия 404.

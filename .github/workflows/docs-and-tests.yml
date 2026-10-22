@@ -17,17 +17,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Maven tests
+      - name: Diarization Maven tests
         working-directory: server-prototype/java
         run: mvn -B test
-      - name: Package
+      - name: Diarization package
         working-directory: server-prototype/java
         run: mvn -B package -DskipTests
-      - name: Generate Javadoc
+      - name: Diarization Javadoc
         working-directory: server-prototype/java
         run: mvn -B javadoc:javadoc
-      - name: Browser JavaScript tests
+      - name: Diarization browser tests
         working-directory: server-prototype/java
         run: node --test src/test/js/audio-worklet.test.cjs src/test/js/integrated-worklet.test.cjs src/test/js/integrated-page.test.cjs
-      - name: Validate OpenAPI
-        run: npx --yes @redocly/cli@2.64.1 lint docs/api/openapi.yaml
+      - name: Interview Maven tests
+        working-directory: vosk-stt-demo
+        run: mvn -B test
+      - name: Interview package
+        working-directory: vosk-stt-demo
+        run: mvn -B package -DskipTests
+      - name: Interview Javadoc
+        working-directory: vosk-stt-demo
+        run: mvn -B javadoc:javadoc
+      - name: Interview browser tests
+        working-directory: vosk-stt-demo
+        run: node --test src/test/js/interview-client-test.js
+      - name: Validate HTTP contracts
+        run: |
+          npx --yes @redocly/cli@2.64.1 lint docs/api/openapi.yaml
+          npx --yes @redocly/cli@2.64.1 lint docs/api/interview-openapi.yaml
+          npx --yes @redocly/cli@2.64.1 lint docs/api/whisper-openapi.yaml

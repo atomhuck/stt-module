@@ -4,3 +4,5 @@ ADR описывают решения текущего прототипа. Пр�
 
 - [0001 — Локальный CPU worker и loopback HTTP](0001-local-worker.md)
 - [0002 — Единая потоковая сессия и группировка аудиокадров](0002-audio-stream.md)
+- [0003 — Два Java-модуля в одном репозитории](0003-monorepo-integration.md)
+- [0004 — Второй проход Whisper вне основного решения](0004-whisper-refinement.md)

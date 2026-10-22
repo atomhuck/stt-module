@@ -1,5 +1,16 @@
 # Локальный HTTP API
 
+## Карта контрактов
+
+| Компонент | Интерфейс | Контракт |
+| --- | --- | --- |
+| Диаризация и общий браузер (`127.0.0.1:8765`) | HTTP `/api/*` | [OpenAPI](openapi.yaml) и сценарий ниже |
+| Сервис Vosk/интервью (порт 8080) | HTTP `GET /api/reports/{name}` | [OpenAPI отчётов](interview-openapi.yaml) |
+| Сервис Vosk/интервью (порт 8080) | `/ws/stt`, `/ws/interview` | [WebSocket-протокол](websocket.md) |
+| Необязательный Whisper (`127.0.0.1:9000`) | HTTP `/transcribe`, `/transcribe-json` | [OpenAPI Whisper](whisper-openapi.yaml) |
+
+OpenAPI описывает только HTTP. Текстовый WebSocket-протокол сверяется отдельно с обработчиками и `IntegrationBridge`.
+
 Полный контракт запросов, ответов и ошибок — [OpenAPI 3.1](openapi.yaml). Сервер доступен только на `127.0.0.1:8765` после запуска `browser` или `integrated`. `X-Session-Id` связывает действия с текущим интервью; это не средство сетевой авторизации.
 
 ## Порядок вызовов

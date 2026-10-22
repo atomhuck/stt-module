@@ -30,6 +30,11 @@ final class NemotronStream implements AutoCloseable {
      */
     @Structure.FieldOrder({"size", "modelPath", "gpu", "preset", "chunkFrames", "rightContextFrames",
             "leftContextFrames", "fifoFrames", "spkcacheFrames", "updatePeriodFrames"})
+    /**
+     * Задаёт пороги детектора конца ответа или нативной модели.
+     *
+     * @version 1.0.0
+     */
     public static class Config extends Structure {
         public long size;             // size_t на поддерживаемых 64-битных системах
         public Pointer modelPath;

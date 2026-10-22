@@ -1,39 +1,29 @@
-# STT module — локальный прототип диаризации
+# STT module — локальное интервью с распознаванием и разделением голосов
 
-Java-модуль определяет интервалы речи с помощью Nemotron 3 и сопоставляет голоса с эталоном кандидата через CAM++. Режим `integrated` дополнительно показывает локальное демо интервью с Vosk, подсказками, TTS и Whisper. Модели и аудио хранятся на машине запуска и в репозиторий не входят.
+Репозиторий содержит два Java-модуля: `server-prototype/java` разделяет говорящих с помощью Nemotron 3 и CAM++, а `vosk-stt-demo` распознаёт речь через Vosk, ведёт интервью, анализирует ответы и формирует Excel-отчёт. Необязательный Python-сервис Whisper уточняет завершённые ответы. Общий режим `integrated` связывает их локально.
 
-## Быстрый старт
+## Быстрый старт без моделей
 
-Нужны Windows x64, JDK 17+, Maven 3, локальная библиотека Nemotron, GGUF-модель Nemotron и ONNX-модель CAM++. Без моделей можно собрать проект и запустить тесты:
+Нужны JDK 17+, Maven 3 и Node.js 22+ для браузерных тестов. Из корня репозитория:
 
 ```powershell
-cd server-prototype/java
-mvn test
-mvn package
-java -jar target/diarization-worker-1.0.0.jar --help
+mvn -f server-prototype/java/pom.xml test
+mvn -f vosk-stt-demo/pom.xml test
+mvn -f server-prototype/java/pom.xml package -DskipTests
+mvn -f vosk-stt-demo/pom.xml package -DskipTests
+java -jar server-prototype/java/target/diarization-worker-1.0.0.jar --help
 ```
 
-Для обработки WAV подготовьте несжатый PCM16 16 кГц и выполните команду из [справочника CLI](docs/cli.md#stream). Для общего демо с Vosk и Whisper используйте [пошаговую инструкцию](server-prototype/java/INTEGRATED_DEMO.md); она требует соседний проект сервиса Артёма и локальные модели.
+Тест с настоящей моделью Vosk автоматически пропускается, если `VOSK_MODEL_PATH` не указывает на распакованную модель. Модели, DLL, аудиозаписи и результаты в Git не хранятся.
 
-## Режимы
+## Запуск с моделями
 
-| Режим | Назначение |
-| --- | --- |
-| `browser` | Локальная страница диаризации без STT. |
-| `integrated` | Страница интервью, диаризация и подключение к сервису Артёма. |
-| `live` | Запись микрофона в консоли. |
-| `live-devices` | Список доступных микрофонов. |
-| `stream` | Последовательная обработка готового WAV. |
-| `verify` | Проверка ролей по готовому JSON диаризации и голосовому эталону. |
+- **Диаризация WAV или микрофона:** [режимы CLI](docs/cli.md) и [подготовка Nemotron/CAM++](server-prototype/java/README.md).
+- **Отдельный Vosk и интервью:** [запуск сервиса](docs/vosk-interview.md), затем `http://127.0.0.1:8080/` или `/interview.html`.
+- **Общее демо:** [пошаговая инструкция](server-prototype/java/INTEGRATED_DEMO.md). `DemoLauncher` запускает оба Java-компонента и Whisper из этого репозитория.
 
 ## Документация
 
-- [Навигация по документации](docs/README.md)
-- [Команды и настройка моделей](docs/cli.md)
-- [Выходные файлы](docs/output-formats.md)
-- [Архитектура и место для схемы](docs/architecture/README.md)
-- [Локальный HTTP API — сценарий и OpenAPI](docs/api/README.md)
-- [Разработка и проверки](docs/development.md)
-- [Подробный запуск Java-модуля в IntelliJ IDEA](server-prototype/java/README.md)
+Начните с [карты документации](docs/README.md). Там находятся [архитектура](docs/architecture/README.md), [протоколы](docs/api/README.md), [форматы результатов](docs/output-formats.md), [настройка и проверки](docs/development.md) и [ADR](docs/adr/README.md). Место для схемы архитектуры оставлено сокоманднику.
 
-Прототип слушает только loopback и не предоставляет внешний серверный API. Точность ролей и задержки следует проверять на размеченных записях; `confidence_percent` — эвристическая оценка решения, а не вероятность его правильности.
+HTTP-сервер диаризации слушает только `127.0.0.1:8765`. Сервис Vosk/интервью по умолчанию слушает порт `8080`, а Whisper — `127.0.0.1:9000`; перед сетевым использованием настройте границы доступа отдельно. Оценки и задержки в документации являются описанием алгоритма или целями, пока не проверены живым прогоном.

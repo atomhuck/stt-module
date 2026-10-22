@@ -34,8 +34,8 @@ public final class DemoLauncher {
      */
     public static void main(String[] args) throws Exception {
         Path javaModule = Path.of("").toAbsolutePath().normalize();
-        Path workspace = javaModule.getParent().getParent().getParent();
-        Path artem = envPath("ARTEM_PROJECT", workspace.resolve("vosk-stt-demo"));
+        Path repository = javaModule.getParent().getParent();
+        Path artem = envPath("ARTEM_PROJECT", repository.resolve("vosk-stt-demo"));
         Path publicDir = envPath("NEMOTRON_HOME", Path.of("C:/Users/Public/NemotronTest"));
         Path jar = artem.resolve("target/vosk-stt-demo-1.0.0.jar");
         Path python = envPath("WHISPER_PYTHON", publicDir.resolve("whisper-venv/Scripts/python.exe"));

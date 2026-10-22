@@ -27,7 +27,7 @@ java -jar target/diarization-worker-1.0.0.jar stream `
 
 Для отдельной страницы диаризации замените `stream` из примера выше на `browser` и уберите `--audio` и `--pace`. Браузер откроется автоматически; если этого не произошло, откройте `http://localhost:8765` вручную. Разрешите микрофон и демонстрацию всего экрана со звуком.
 
-Для полного демо запускайте `DemoLauncher` по [инструкции](../server-prototype/java/INTEGRATED_DEMO.md): он проверяет и запускает соседний сервис Артёма и Whisper. Прямой запуск `Main integrated` поднимет лишь Java-страницу и не запустит эти процессы.
+Для полного демо запускайте `DemoLauncher` по [инструкции](../server-prototype/java/INTEGRATED_DEMO.md): он проверяет и запускает `vosk-stt-demo` из этого репозитория и Whisper. Прямой запуск `Main integrated` поднимет лишь Java-страницу и не запустит эти процессы.
 
 ## `live` и `live-devices`
 

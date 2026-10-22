@@ -1,6 +1,6 @@
 # Локальное демо: интервью, STT, роли и подсказки
 
-Два локальных Java-сервиса работают вместе: сервис Артёма использует Vosk `vosk-model-ru-0.42`, его неизменённый анализ ответов и необязательный для самостоятельного запуска Whisper; наш сервис добавляет Nemotron 3 + CAM++ и страницу интервью. Предварительная подсказка идёт через read-only `InterviewSession.peek`; она не фиксирует ответ и не меняет правила `DecisionPolicy` / `AnswerAnalyzer`.
+Два локальных Java-модуля этого репозитория работают вместе: `vosk-stt-demo` использует Vosk `vosk-model-ru-0.42` и анализирует ответы, а `server-prototype/java` добавляет Nemotron 3 + CAM++, роли и общую страницу интервью. Whisper является отдельным Python-процессом. Предварительная подсказка идёт через read-only `InterviewSession.peek`; она не фиксирует ответ и не меняет правила `DecisionPolicy` / `AnswerAnalyzer`.
 
 ## Поток аудио
 
@@ -17,11 +17,11 @@
 
 ### Подготовка
 
-1. В IntelliJ откройте проект `stt-module/server-prototype/java/pom.xml`. Подключите соседний `vosk-stt-demo/pom.xml` через **File → Attach Project**.
+1. В IntelliJ откройте `server-prototype/java/pom.xml`. Подключите `vosk-stt-demo/pom.xml` из этого же репозитория через **File → Attach Project**.
 2. Проверьте, что каталог `C:\Users\Public\NemotronTest\vosk-model-ru-0.42-native` содержит `README`, `am/final.mdl` и `graph/words.txt`, а в README указана версия 0.42. Не заменяйте эту модель малой.
-3. Соберите сервис Артёма из каталога `vosk-stt-demo`: Maven `package -DskipTests`. Это создаёт JAR и не загружает модель Vosk во время сборки.
+3. Соберите `vosk-stt-demo`: из корня репозитория выполните `mvn -f vosk-stt-demo/pom.xml package -DskipTests`. Это создаёт JAR и не загружает модель Vosk во время сборки.
 4. В Maven settings IntelliJ укажите локальный репозиторий `C:\Users\Public\NemotronTest\maven-repository`, если стандартный `.m2` на пути с кириллицей недоступен.
-5. В IntelliJ выберите **Integrated demo (Vosk 0.42 + Whisper + Nemotron)** из `.run`. Проверьте, что Main class — `ru.aireferent.diarization.DemoLauncher`. Не выбирайте прежний прямой `Main` с аргументом `integrated`: он запускает только страницу диаризации и сам не поднимает Artem/Vosk и Whisper. Working directory общей конфигурации — корень Java-модуля, JRE — `C:\Users\Public\NemotronTest\java-idea-sdk` (Java 17+).
+5. В IntelliJ выберите **Integrated demo (Vosk 0.42 + Whisper + Nemotron)** из `.run`. Main class — `ru.aireferent.diarization.DemoLauncher`, working directory — `server-prototype/java`, JRE — Java 17+. Прямой `Main integrated` запускает страницу без дочерних процессов Vosk и Whisper.
 
 ### Один запуск
 
@@ -32,21 +32,21 @@
 5. Для отключения TTS снимите флажок до начала интервью. После каждого живого вопроса нажимайте «Вопрос задан»; это открывает анализ ответа. Список в поле «Первый голос» задаёт начальный голос; следующие основные вопросы чередуют доступные русские голоса, а уточнения сохраняют голос родительского вопроса.
 6. В конце нажмите «Завершить интервью». Страница дождётся финального отчёта и покажет общую оценку, оценки по критериям и покрытие каждого вопроса. Если Whisper включён, сервис дождётся его уточнений (до настроенного тайм-аута), затем выдаст отчёт. Папка результатов появится в терминале и на странице под `C:\Users\Public\NemotronTest\integrated-runs`.
 
-Одна кнопка в IntelliJ запускает launcher и оба сервиса. После изменения Java-кода Артёма заново выполните `mvn package -DskipTests` в его модуле, затем запустите общую конфигурацию. Если порт занят, launcher сообщит его до запуска; закройте прежнее окно Run и повторите.
+Одна кнопка в IntelliJ запускает launcher и оба сервиса. После изменения `vosk-stt-demo` заново соберите его JAR и запустите общую конфигурацию. Если порт занят, launcher сообщит его до запуска; закройте прежнее окно Run и повторите.
 
 ### Пути для другого участника
 
 В Run Configuration → Environment variables задайте пути, отличающиеся от этой машины:
 
 ```text
-ARTEM_PROJECT=D:\work\vosk-stt-demo
+ARTEM_PROJECT=D:\work\stt-module\vosk-stt-demo
 NEMOTRON_HOME=D:\models\NemotronTest
 VOSK_MODEL_PATH=D:\models\vosk-model-ru-0.42
 WHISPER_PYTHON=D:\models\whisper-venv\Scripts\python.exe
 WHISPER_MODEL=small
 ```
 
-В `NEMOTRON_HOME` launcher ожидает `runtime/bin/nemo_speech_asr_c.dll`, `model.gguf`, `speaker_embedding_model.onnx`, `whisper-venv` (если не задан `WHISPER_PYTHON`) и `integrated-runs`. В проекте Артёма должны быть `target/vosk-stt-demo-1.0.0.jar`, `tools/whisper_server.py` и `demo/questions-six.tsv`. Сначала установите Whisper-зависимости командой `pip install -r tools/requirements-whisper.txt` в отдельное Python-окружение и загрузите модель faster-whisper `small`. Launcher использует CPU, int8 и два потока.
+В `NEMOTRON_HOME` launcher ожидает `runtime/bin/nemo_speech_asr_c.dll`, `model.gguf`, `speaker_embedding_model.onnx`, `whisper-venv` (если не задан `WHISPER_PYTHON`) и `integrated-runs`. В каталоге `vosk-stt-demo` должны быть `target/vosk-stt-demo-1.0.0.jar`, `tools/whisper_server.py` и `demo/questions-six.tsv`. Сначала установите Whisper-зависимости командой `pip install -r vosk-stt-demo/tools/requirements-whisper.txt` из корня репозитория в отдельное Python-окружение и загрузите модель faster-whisper `small`. Launcher использует CPU, int8 и два потока.
 
 ### Если запуск не проходит
 
@@ -70,6 +70,6 @@ WHISPER_MODEL=small
 
 ## Проверки кода
 
-Из Java-модуля: `mvn test`. В том же каталоге: `node --test src/test/js/integrated-worklet.test.cjs src/test/js/integrated-page.test.cjs`. В проекте Артёма: `mvn test` проверяет реальную модель, если задать `VOSK_MODEL_PATH` на распакованную 0.42; без установленной модели этот тест не может пройти. Для сборки JAR используйте `mvn package -DskipTests`.
+Для обоих Java-модулей выполните тесты, сборку и Javadoc по [инструкции разработки](../../docs/development.md). Тест Vosk с настоящей моделью запускается только при заданном `VOSK_MODEL_PATH`; без модели он пропускается.
 
-Живой прогон с четырьмя говорящими, наложением речи, TTS, Whisper и всеми JSON проверяется отдельно по [сценарию демо](../../../vosk-stt-demo/demo/SCENARIO.md). Ни одна цифра целевой задержки не объявляется подтверждённой без этого прогона.
+Живой прогон с четырьмя говорящими, наложением речи, TTS, Whisper и всеми JSON проверяется отдельно по [сценарию демо](../../vosk-stt-demo/demo/SCENARIO.md). Ни одна цифра целевой задержки не объявляется подтверждённой без этого прогона.
