@@ -10,7 +10,11 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** One live microphone, one persistent Nemotron stream, and a live candidate enrollment. */
+/**
+ * Записывает эталон и интервью с одного микрофона в непрерывную сессию Nemotron.
+ *
+ * @version 1.0.0
+ */
 final class LiveMicrophone {
     private static final int ENROLL_SECONDS = 10;
     private final Path dll, gguf, speakerModel, outputDir;
@@ -126,16 +130,25 @@ final class LiveMicrophone {
             try {
                 if (System.in.read() >= 0) stop.set(true);
             } catch (Exception ignored) {
-                // EOF or a closed IDE console leaves the microphone session running.
+                // Закрытая консоль IDE не должна прерывать сеанс микрофона.
             }
         }, "stop-on-enter");
         listener.setDaemon(true);
         listener.start();
     }
 
+    /** Кадр аудио с позицией во временной шкале и временем захвата.
+     *
+     * @version 1.0.0
+     */
     record AudioChunk(long index, long firstSample, float[] samples, long capturedAtNanos) {}
 
-    /** Only this thread reads the microphone; the main thread alone owns Nemotron and output files. */
+    /**
+     * Отделяет чтение микрофона от обработки Nemotron ограниченной очередью.
+     * Только этот поток читает микрофон; основной поток владеет моделью и файлами.
+     *
+     * @version 1.0.0
+     */
     static final class CapturePump {
         private final SampleSource microphone;
         private final int chunkSamples;

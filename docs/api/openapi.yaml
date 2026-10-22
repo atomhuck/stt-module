@@ -1,0 +1,371 @@
+openapi: 3.1.0
+info:
+  title: Локальный HTTP API STT demo
+  version: 1.0.0
+  description: |
+    Фактические маршруты BrowserMode. Сервер слушает только 127.0.0.1:8765.
+    Один активный сеанс обслуживается за раз. X-Session-Id связывает запросы
+    с текущим интервью и не является полноценной сетевой авторизацией.
+    Маршруты с тегом integrated доступны только в режиме integrated.
+servers:
+  - url: http://127.0.0.1:8765
+security: []
+tags:
+  - name: session
+    description: Состояние и завершение интервью
+  - name: audio
+    description: Запись эталона и поток интервью
+  - name: integrated
+    description: Действия интегрированного демо
+paths:
+  /api/status:
+    get:
+      tags: [session]
+      operationId: getStatus
+      summary: Получить состояние текущего сеанса
+      description: Без активного сеанса возвращает только phase=idle. X-Session-Id не обязателен.
+      parameters:
+        - $ref: '#/components/parameters/OptionalSessionId'
+      responses:
+        '200':
+          description: Состояние сеанса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Status'
+              examples:
+                idle:
+                  value: {phase: idle}
+                enrolling:
+                  value:
+                    session_id: 2d6f0cd6-64cc-49d2-91f8-c557d63332f4
+                    phase: enrolling
+                    role: Ожидаем речь
+                    audio_seconds: 0
+                    enrollment_seconds: 2.56
+                    queue_depth_chunks: 0
+                    error: null
+                    output_dir: null
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/enrollment/start:
+    post:
+      tags: [audio]
+      operationId: startEnrollment
+      summary: Создать сеанс и начать запись эталона
+      description: Пустое тело. Новый сеанс заменяет только завершённый или ожидающий повтора.
+      responses:
+        '200':
+          $ref: '#/components/responses/Status'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/enrollment/audio:
+    post:
+      tags: [audio]
+      operationId: sendEnrollmentAudio
+      summary: Передать очередной чанк эталона
+      description: Номера чанков начинаются с 0 и возрастают без пропусков. Эталон ограничен 30 секундами.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/Sequence'
+      requestBody:
+        $ref: '#/components/requestBodies/AudioChunk'
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '413':
+          $ref: '#/components/responses/TooLarge'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/enrollment/finish:
+    post:
+      tags: [audio]
+      operationId: finishEnrollment
+      summary: Построить эталон и начать интервью
+      description: Пустое тело. Если голосовой эмбеддинг не получен, phase=retry.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Status'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/audio:
+    post:
+      tags: [audio]
+      operationId: sendInterviewAudio
+      summary: Передать очередной чанк интервью
+      description: Счётчик X-Sequence для интервью вновь начинается с 0. Переполнение очереди завершает захват.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/Sequence'
+      requestBody:
+        $ref: '#/components/requestBodies/AudioChunk'
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/question/asked:
+    post:
+      tags: [integrated]
+      operationId: questionAsked
+      summary: Отметить, что вопрос задан
+      description: Пустое тело. Открывает анализ ответа; доступно только в integrated.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Status'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/question/skip:
+    post:
+      tags: [integrated]
+      operationId: skipQuestion
+      summary: Пропустить текущий вопрос
+      description: Пустое тело. Доступно только в integrated.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Status'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/tts/event:
+    post:
+      tags: [integrated]
+      operationId: recordTtsEvent
+      summary: Записать событие озвучки
+      description: Доступно только в integrated. Отсутствующие строковые поля получают значения по умолчанию в сервере.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TtsEvent'
+            example:
+              event: start
+              question: Расскажите о проекте
+              voice: Microsoft Irina
+              voice_lang: ru-RU
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/ui/seen:
+    post:
+      tags: [integrated]
+      operationId: markUiEventSeen
+      summary: Отметить показ подсказки или решения
+      description: Пустое тело. Сервер принимает X-Event-Id без отдельной проверки; доступно только в integrated.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - $ref: '#/components/parameters/EventId'
+      responses:
+        '200':
+          $ref: '#/components/responses/Ok'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+  /api/finish:
+    post:
+      tags: [session]
+      operationId: finishInterview
+      summary: Запросить завершение интервью
+      description: Пустое тело. Ответ может иметь phase=stopping; итог получайте через /api/status.
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: X-Stop-Reason
+          in: header
+          required: false
+          description: При отсутствии используется requested.
+          schema:
+            type: string
+            enum: [requested, system_audio_lost, microphone_lost, capture_error]
+      responses:
+        '200':
+          $ref: '#/components/responses/Status'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '409':
+          $ref: '#/components/responses/Conflict'
+        '500':
+          $ref: '#/components/responses/ServerError'
+components:
+  parameters:
+    SessionId:
+      name: X-Session-Id
+      in: header
+      required: true
+      description: session_id, полученный от /api/enrollment/start; это идентификатор сеанса, не механизм авторизации.
+      schema: {type: string, format: uuid}
+    OptionalSessionId:
+      name: X-Session-Id
+      in: header
+      required: false
+      description: Продлевает активность сеанса при совпадении; для чтения статуса не обязателен.
+      schema: {type: string}
+    Sequence:
+      name: X-Sequence
+      in: header
+      required: true
+      description: Номер следующего аудиочанка, начиная с 0 отдельно для эталона и интервью.
+      schema: {type: integer, format: int64, minimum: 0}
+    EventId:
+      name: X-Event-Id
+      in: header
+      required: false
+      description: Идентификатор показанного события; сервер допускает отсутствие заголовка.
+      schema: {type: string}
+  requestBodies:
+    AudioChunk:
+      required: true
+      description: |
+        Сырые little-endian PCM16, моно, 16000 сэмплов/с; без заголовка WAV.
+        От 1 до 10240 сэмплов (2–20480 байт), чётное число байт.
+        integrated обычно отправляет кадры по 160 мс, browser — до 640 мс.
+        Максимум одного запроса — 0,64 с.
+      content:
+        application/octet-stream:
+          schema: {type: string, format: binary}
+  schemas:
+    Status:
+      type: object
+      required: [phase]
+      properties:
+        session_id: {type: string, format: uuid}
+        phase:
+          type: string
+          enum: [idle, enrolling, preparing, retry, live, stopping, finished, error]
+        role: {type: string}
+        audio_seconds: {type: number, minimum: 0}
+        enrollment_seconds: {type: number, minimum: 0}
+        queue_depth_chunks: {type: integer, minimum: 0}
+        error: {type: [string, 'null']}
+        output_dir: {type: [string, 'null']}
+        integration:
+          type: object
+          description: Дополнительное состояние Vosk, подсказок и отчёта в integrated.
+          additionalProperties: true
+      additionalProperties: false
+    TtsEvent:
+      type: object
+      properties:
+        event: {type: string, description: При отсутствии сервер использует unknown.}
+        question: {type: string}
+        voice: {type: string}
+        voice_lang: {type: string}
+      additionalProperties: true
+    Ok:
+      type: object
+      required: [ok]
+      properties:
+        ok: {type: boolean, const: true}
+      additionalProperties: false
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error: {type: string}
+      additionalProperties: false
+  responses:
+    Status:
+      description: Текущее состояние
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Status'
+    Ok:
+      description: Действие принято
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Ok'
+          example: {ok: true}
+    BadRequest:
+      description: Неверный заголовок, чанк или причина завершения
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Forbidden:
+      description: Недопустимый Origin или неверный X-Session-Id
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    NotFound:
+      description: Действие недоступно в текущем режиме
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    Conflict:
+      description: Сеанс в неподходящем состоянии или нарушен порядок чанков
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    TooLarge:
+      description: Эталон длиннее 30 секунд
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ServerError:
+      description: Ошибка обработки на сервере
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'

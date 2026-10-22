@@ -15,10 +15,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Сверяет готовую диаризацию с голосовым эталоном и сохраняет JSON/CSV.
+ *
+ * @version 1.0.0
+ */
 final class OfflineVerify {
     private static final String[] CSV_FIELDS = {"start", "end", "duration", "label", "candidate_similarity",
             "interviewer_similarity", "source_speaker_id", "confidence", "decision"};
 
+    /** Изменяемый интервал для проверки и устранения неоднозначных наложений.
+     *
+     * @version 1.0.0
+     */
     private static final class Interval {
         double start, end;
         String source, label = "", confidence = "низкая", decision = "";
@@ -30,6 +39,10 @@ final class OfflineVerify {
         double duration() { return Math.max(0, end - start); }
     }
 
+    /** Группа эмбеддингов одного голоса.
+     *
+     * @version 1.0.0
+     */
     private static final class Cluster {
         final List<float[]> embeddings = new ArrayList<>();
         double firstStart;

@@ -23,7 +23,11 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-/** Loopback-only browser audio transport. One interview owns one model pair and one worker. */
+/**
+ * Принимает аудио браузера только через loopback; один сеанс владеет парой моделей и worker.
+ *
+ * @version 1.0.0
+ */
 final class BrowserMode {
     private static final int CHUNK_SAMPLES = 10240;
     private final Path dll, gguf, speakerModel, outputRoot;
@@ -198,11 +202,20 @@ final class BrowserMode {
         return result;
     }
 
+    /** Ошибка запроса с кодом ответа локального HTTP API.
+     *
+     * @version 1.0.0
+     */
     private static final class HttpError extends RuntimeException {
         final int code;
         HttpError(int code, String message) { super(message); this.code = code; }
     }
 
+    /**
+     * Состояние единственного активного интервью и его ресурсов.
+     *
+     * @version 1.0.0
+     */
     private final class Interview {
         final String id = UUID.randomUUID().toString();
         final SpeakerEmbeddingExtractor extractor;
@@ -290,6 +303,7 @@ final class BrowserMode {
             LiveMicrophone.AudioChunk item = new LiveMicrophone.AudioChunk(sequence, acceptedSamples, chunk, System.nanoTime());
             liveSequence++;
             lastContact = System.nanoTime();
+            // Пропуск чанка нарушил бы временную шкалу одной сессии Nemotron.
             if (!queue.offer(item)) {
                 overflowCount++;
                 droppedChunks++;

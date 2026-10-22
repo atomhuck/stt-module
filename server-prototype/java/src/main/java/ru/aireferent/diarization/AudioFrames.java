@@ -2,10 +2,23 @@ package ru.aireferent.diarization;
 
 import java.util.List;
 
-/** Groups ordered 160 ms browser frames into the 640 ms blocks expected by Nemotron. */
+/**
+ * Объединяет четыре последовательных входных кадра в блок для Nemotron.
+ *
+ * @version 1.0.0
+ */
 final class AudioFrames {
     private AudioFrames() {}
 
+    /**
+     * Сохраняет время первого кадра и отклоняет пропуски, чтобы не сместить границы речи.
+     *
+     * @param frames последовательные аудиокадры
+     * @param index номер блока Nemotron
+     * @return объединённый блок
+     * @throws IllegalArgumentException если список пуст
+     * @throws IllegalStateException если нарушен порядок сэмплов
+     */
     static LiveMicrophone.AudioChunk mergeForNemotron(List<LiveMicrophone.AudioChunk> frames, long index) {
         if (frames == null || frames.isEmpty()) throw new IllegalArgumentException("Нет кадров для Nemotron.");
         long expected = frames.get(0).firstSample();

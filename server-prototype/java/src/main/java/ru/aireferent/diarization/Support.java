@@ -22,6 +22,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Общие операции чтения аудио, эмбеддингов, параметров и JSON.
+ *
+ * @version 1.0.0
+ */
 final class Support {
     static final int RATE = 16000;
     static final String MODEL_URL = "https://github.com/k2-fsa/sherpa-onnx/releases/download/"

@@ -12,10 +12,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** The single owner of Nemotron, role decisions, and the three live output files. */
+/**
+ * Владеет сессией Nemotron, решениями о ролях и тремя основными файлами результата.
+ *
+ * @version 1.0.0
+ */
 final class LiveSession implements AutoCloseable {
+    /** Счётчики захвата и причина остановки.
+     *
+     * @version 1.0.0
+     */
     record Capture(long capturedSamples, int capacity, long maxDepth, long overflowCount,
                    long droppedChunks, long droppedSamples, String stopReason, String error) {}
+    /** Результат обработки блока для интерфейса и моста интеграции.
+     *
+     * @version 1.0.0
+     */
     record Update(String role, double audioSeconds, List<Map<String, Object>> segments,
                   List<Map<String, Object>> activeSegments) {}
 
@@ -243,6 +255,10 @@ final class LiveSession implements AutoCloseable {
 
     @Override public void close() throws Exception { log.close(); }
 
+    /** Кольцевой буфер последних сэмплов для извлечения голосовых сегментов.
+     *
+     * @version 1.0.0
+     */
     private static final class AudioRing {
         private final float[] samples;
         private long total;

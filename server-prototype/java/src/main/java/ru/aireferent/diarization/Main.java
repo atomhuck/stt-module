@@ -3,9 +3,19 @@ package ru.aireferent.diarization;
 import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * Выбирает режим worker по первому аргументу командной строки.
+ *
+ * @version 1.0.0
+ */
 public final class Main {
     private Main() {}
 
+    /**
+     * Запускает выбранный режим или выводит справку.
+     *
+     * @param args режим и его параметры; пустой массив выводит справку
+     */
     public static void main(String[] args) {
         try {
             if (args.length == 0 || args[0].equals("--help") || args[0].equals("-h")) {

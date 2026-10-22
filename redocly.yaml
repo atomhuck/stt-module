@@ -1,0 +1,5 @@
+extends:
+  - recommended
+rules:
+  # В репозитории нет файла лицензии; не объявляем её от имени владельца.
+  info-license: off

@@ -13,6 +13,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Воспроизводит WAV последовательными чанками в одной сессии Nemotron.
+ *
+ * @version 1.0.0
+ */
 final class StreamReplay {
     private final Map<String, String> options;
     private final Path audioPath, dll, gguf, speakerModel, outputDir;

@@ -1,6 +1,10 @@
 package ru.aireferent.diarization;
 
-/** An explainable display score for the existing role rules, not a calibrated probability. */
+/**
+ * Вычисляет объяснимую оценку роли для интерфейса, а не вероятность правильности.
+ *
+ * @version 1.0.0
+ */
 final class ConfidenceScore {
     private ConfidenceScore() {}
 

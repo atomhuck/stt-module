@@ -16,12 +16,22 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Starts the two local services and the integrated page from one IntelliJ Application configuration. */
+/**
+ * Запускает локальные сервисы и страницу интегрированного демо из одной конфигурации.
+ *
+ * @version 1.0.0
+ */
 public final class DemoLauncher {
     private static final List<Process> CHILDREN = new ArrayList<>();
 
     private DemoLauncher() {}
 
+    /**
+     * Проверяет зависимости и запускает Vosk, Whisper и браузерный worker.
+     *
+     * @param args аргументы запуска worker
+     * @throws Exception если подготовка или запуск сервиса завершились ошибкой
+     */
     public static void main(String[] args) throws Exception {
         Path javaModule = Path.of("").toAbsolutePath().normalize();
         Path workspace = javaModule.getParent().getParent().getParent();
@@ -71,9 +81,8 @@ public final class DemoLauncher {
                     "--nemo-model", gguf.toString(), "--speaker-model", speaker.toString(),
                     "--output-dir", publicDir.resolve("integrated-runs").toString(),
                     "--artem-url", "ws://127.0.0.1:8080"});
-            // BrowserMode starts its HTTP server and returns immediately. Keep this
-            // launcher alive so its Vosk and Whisper child processes remain available
-            // for the whole browser interview.
+            // BrowserMode возвращается сразу после запуска HTTP-сервера; дочерние
+            // процессы должны жить до конца браузерного интервью.
             keepServicesAlive();
         } finally {
             stopChildren();
@@ -122,7 +131,7 @@ public final class DemoLauncher {
                 HttpResponse<Void> response = http.send(request, HttpResponse.BodyHandlers.discarding());
                 if (response.statusCode() < 500) return;
             } catch (Exception ignored) {
-                // The server is still loading its model.
+                // Сервис ещё загружает модель.
             }
             Thread.sleep(1000);
         }

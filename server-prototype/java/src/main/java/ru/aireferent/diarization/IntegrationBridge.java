@@ -26,20 +26,36 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-/** The local transport between the unchanged diarization pipeline and Artem's WebSocket service. */
+/**
+ * Передаёт аудио и события между диаризацией и WebSocket-сервисом Артёма.
+ *
+ * @version 1.0.0
+ */
 final class IntegrationBridge implements AutoCloseable {
     private static final int RATE = 16000;
-    // A finalized diarization span can release many 160 ms frames at once.
-    // 64 frames only held about ten seconds, less than a typical answer.
+    // Финальная разметка может высвободить много кадров по 160 мс сразу;
+    // очередь должна вмещать ответ длиннее десяти секунд.
     private static final int CANDIDATE_QUEUE_CAPACITY = 512;
     private static final int HOLD_SAMPLES = RATE;
     private static final byte[] END = new byte[0];
     private static final byte[] READY = new byte[1];
     private static final byte[] SKIP = new byte[3];
+    /** Блок смешанного аудио с позицией первого сэмпла.
+     *
+     * @version 1.0.0
+     */
     private record AudioBlock(long first, byte[] mixed) {
         long end() { return first + mixed.length / 2; }
     }
+    /** Интервал голоса с предварительной или подтверждённой ролью.
+     *
+     * @version 1.0.0
+     */
     private record VoiceSpan(long start, long end, String label, String speaker, boolean preliminary) {}
+    /** Фрагмент речи, ожидающий окончательного подтверждения роли.
+     *
+     * @version 1.0.0
+     */
     private static final class PendingSpan {
         long start, lastSeen;
         PendingSpan(long start, long lastSeen) { this.start = start; this.lastSeen = lastSeen; }
@@ -158,8 +174,8 @@ final class IntegrationBridge implements AutoCloseable {
                     if (block == READY) { peer.sendText("{\"type\":\"ready\"}"); continue; }
                     if (block == SKIP) { peer.sendText("{\"type\":\"skip\"}"); continue; }
                     if (queue == candidateQueue) {
-                        // Artem's endpoint detector counts voiced frames. Feed 50 ms frames,
-                        // even though the browser and Nemotron use 640 ms chunks.
+                        // Детектор конца ответа Артёма считает речевые кадры по 50 мс,
+                        // хотя браузер и Nemotron используют более длинные блоки.
                         for (int from = 0; from < block.length; from += 1600) {
                             int size = Math.min(1600, block.length - from);
                             peer.sendAudio(java.util.Arrays.copyOfRange(block, from, from + size));
@@ -218,8 +234,8 @@ final class IntegrationBridge implements AutoCloseable {
                 pendingSpans.remove(speaker);
             VoiceSpan priorPreview = provisionalSpans.get(speaker);
             if ("Не определено".equals(label) && priorPreview != null) {
-                // Keep a two-window CAM++ preview visible while the final segment is still short
-                // of the 2.5 s role-confirmation requirement.
+                // Показываем предварительную роль по двум окнам CAM++ до накопления
+                // 2,5 с речи, необходимых для окончательного подтверждения.
                 currentRole = priorPreview.label() + " · предварительно";
             } else {
                 spans.removeIf(span -> span.preliminary() && span.speaker().equals(speaker));
@@ -332,15 +348,15 @@ final class IntegrationBridge implements AutoCloseable {
             AudioBlock block = audio.removeFirst();
             byte[] gated = new byte[block.mixed().length];
             for (VoiceSpan span : spans) {
-                // Preliminary CAM++ votes may drive a read-only peek, but only a confirmed role
-                // is allowed into Artem's stateful answer detector and analysis pipeline.
+                // Предварительная роль разрешает только read-only peek.
+                // Анализ ответа с изменением состояния получает подтверждённую роль.
                 if (!"Кандидат".equals(span.label()) || span.preliminary()) continue;
                 long left = Math.max(block.first(), span.start());
                 long right = Math.min(block.end(), span.end());
                 if (right > left) System.arraycopy(block.mixed(), (int) ((left - block.first()) * 2),
                         gated, (int) ((left - block.first()) * 2), (int) ((right - left) * 2));
             }
-            // Mixed audio is unsafe for candidate-only analysis where another speaker overlaps.
+            // При наложении голосов смешанный звук нельзя считать речью кандидата.
             for (VoiceSpan span : spans) {
                 if ("Кандидат".equals(span.label())) continue;
                 long left = Math.max(block.first(), span.start());
@@ -348,9 +364,8 @@ final class IntegrationBridge implements AutoCloseable {
                 if (right > left) java.util.Arrays.fill(gated, (int) ((left - block.first()) * 2),
                         (int) ((right - block.first()) * 2), (byte) 0);
             }
-            // Ignore audio captured before the current question was handed to the candidate.
-            // This prevents TTS and prior-question audio from entering Artem's answer detector,
-            // even if Nemotron finishes classifying an older frame after the READY marker.
+            // Отсекаем звук до передачи текущего вопроса кандидату: иначе TTS
+            // или предыдущий ответ могут попасть в детектор после маркера READY.
             long preAnswerEnd = Math.min(block.end(), answerStartSample);
             if (preAnswerEnd > block.first())
                 java.util.Arrays.fill(gated, 0, (int) ((preAnswerEnd - block.first()) * 2), (byte) 0);
@@ -559,7 +574,7 @@ final class IntegrationBridge implements AutoCloseable {
         }
     }
 
-    /** Assemble the candidate-only transcript for the current answer from the common Vosk timeline. */
+    /** Собирает текст текущего ответа кандидата из общей временной шкалы Vosk. */
     private void requestCandidatePeek() {
         List<Map<String, Object>> answerWords = currentWords().stream()
                 .filter(word -> "vosk".equals(word.get("model")) && "Кандидат".equals(word.get("role")))
@@ -935,6 +950,10 @@ final class IntegrationBridge implements AutoCloseable {
         try { timelineLog.close(); } catch (Exception ignored) {}
     }
 
+    /** Принимает сообщения одного WebSocket-подключения и собирает их фрагменты.
+     *
+     * @version 1.0.0
+     */
     static final class Peer implements WebSocket.Listener {
         private final Consumer<JsonNode> handler;
         private final StringBuilder text = new StringBuilder();

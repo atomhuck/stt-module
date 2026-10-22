@@ -1,0 +1,33 @@
+name: Documentation and tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Maven tests
+        working-directory: server-prototype/java
+        run: mvn -B test
+      - name: Package
+        working-directory: server-prototype/java
+        run: mvn -B package -DskipTests
+      - name: Generate Javadoc
+        working-directory: server-prototype/java
+        run: mvn -B javadoc:javadoc
+      - name: Browser JavaScript tests
+        working-directory: server-prototype/java
+        run: node --test src/test/js/audio-worklet.test.cjs src/test/js/integrated-worklet.test.cjs src/test/js/integrated-page.test.cjs
+      - name: Validate OpenAPI
+        run: npx --yes @redocly/cli@2.64.1 lint docs/api/openapi.yaml

@@ -17,11 +17,21 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Управляет одной нативной потоковой сессией Nemotron через JNA.
+ *
+ * @version 1.0.0
+ */
 final class NemotronStream implements AutoCloseable {
+    /**
+     * Представление конфигурации C API; порядок полей должен совпадать с ABI.
+     *
+     * @version 1.0.0
+     */
     @Structure.FieldOrder({"size", "modelPath", "gpu", "preset", "chunkFrames", "rightContextFrames",
             "leftContextFrames", "fifoFrames", "spkcacheFrames", "updatePeriodFrames"})
     public static class Config extends Structure {
-        public long size;             // size_t on supported 64-bit hosts
+        public long size;             // size_t на поддерживаемых 64-битных системах
         public Pointer modelPath;
         public int gpu;
         public Pointer preset;
@@ -33,6 +43,11 @@ final class NemotronStream implements AutoCloseable {
         public int updatePeriodFrames;
     }
 
+    /**
+     * Нативный сегмент с границами в секундах и временным speaker ID.
+     *
+     * @version 1.0.0
+     */
     @Structure.FieldOrder({"startTime", "endTime", "speaker"})
     public static class Segment extends Structure {
         public double startTime;
@@ -40,27 +55,139 @@ final class NemotronStream implements AutoCloseable {
         public int speaker;
     }
 
+    /**
+     * Сигнатуры экспортируемых функций Nemotron C API.
+     *
+     * @version 1.0.0
+     */
     interface Api extends Library {
+        /**
+         * Читает последнее сообщение об ошибке нативной библиотеки.
+         *
+         * @return указатель на сообщение
+         */
         Pointer nemo_speech_asr_last_error();
+        /**
+         * Создаёт модель диаризации.
+         *
+         * @param config указатель на конфигурацию
+         * @param model адрес для указателя модели
+         * @return код состояния C API
+         */
         int nemo_speech_diar_create(Pointer config, Pointer model);
+        /**
+         * Освобождает нативную модель.
+         *
+         * @param model указатель модели
+         */
         void nemo_speech_diar_destroy(Pointer model);
+        /**
+         * Открывает поток модели.
+         *
+         * @param model указатель модели
+         * @param stream адрес для указателя потока
+         * @return код состояния C API
+         */
         int nemo_speech_diar_stream_open(Pointer model, Pointer stream);
+        /**
+         * Передаёт сэмплы в открытый поток.
+         *
+         * @param stream указатель потока
+         * @param samples моноаудио
+         * @param length число сэмплов
+         * @param sampleRate частота дискретизации
+         * @return код состояния C API
+         */
         int nemo_speech_diar_stream_push_f32(Pointer stream, float[] samples, long length, int sampleRate);
+        /**
+         * Завершает входной поток.
+         *
+         * @param stream указатель потока
+         * @return код состояния C API
+         */
         int nemo_speech_diar_stream_finish(Pointer stream);
+        /**
+         * Освобождает нативный поток.
+         *
+         * @param stream указатель потока
+         */
         void nemo_speech_diar_stream_close(Pointer stream);
+        /**
+         * Возвращает число обработанных кадров модели.
+         *
+         * @param stream указатель потока
+         * @return число кадров
+         */
         long nemo_speech_diar_frame_count(Pointer stream);
+        /**
+         * Возвращает длительность кадра модели.
+         *
+         * @param model указатель модели
+         * @return секунды на кадр
+         */
         double nemo_speech_diar_seconds_per_frame(Pointer model);
+        /**
+         * Считывает текущие сегменты; при нулевой ёмкости сообщает требуемое число.
+         *
+         * @param stream указатель потока
+         * @param reserved резервный аргумент C API
+         * @param segments буфер сегментов или null
+         * @param capacity ёмкость буфера
+         * @param count адрес для числа сегментов
+         * @return код состояния C API
+         */
         int nemo_speech_diar_segments(Pointer stream, Pointer reserved, Pointer segments,
                                       long capacity, LongByReference count);
     }
 
+    /**
+     * Win32 API для каталога поиска зависимых DLL.
+     *
+     * @version 1.0.0
+     */
     interface Kernel32 extends StdCallLibrary {
+        /**
+         * Задаёт каталог поиска зависимых DLL.
+         *
+         * @param path каталог DLL
+         * @return true при успехе
+         */
         boolean SetDllDirectoryW(WString path);
     }
 
+    /**
+     * Win32 API для сравнения версий нативных библиотек.
+     *
+     * @version 1.0.0
+     */
     interface VersionApi extends StdCallLibrary {
+        /**
+         * Узнаёт размер данных версии файла.
+         *
+         * @param filename путь DLL
+         * @param handle выходной служебный дескриптор
+         * @return размер в байтах
+         */
         int GetFileVersionInfoSizeW(WString filename, IntByReference handle);
+        /**
+         * Читает данные версии файла.
+         *
+         * @param filename путь DLL
+         * @param handle служебный дескриптор
+         * @param size размер буфера
+         * @param data буфер данных
+         * @return true при успехе
+         */
         boolean GetFileVersionInfoW(WString filename, int handle, int size, Pointer data);
+        /**
+         * Извлекает значение из данных версии.
+         *
+         * @param data данные версии
+         * @param subBlock путь к значению
+         * @param value адрес для указателя значения
+         * @param size адрес для размера значения
+         * @return true при успехе
+         */
         boolean VerQueryValueW(Pointer data, WString subBlock, PointerByReference value, IntByReference size);
     }
 

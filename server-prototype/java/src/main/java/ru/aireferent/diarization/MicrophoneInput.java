@@ -10,13 +10,30 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
+/**
+ * Источник моноаудио с частотой 16 кГц для живой сессии.
+ *
+ * @version 1.0.0
+ */
 interface SampleSource {
+    /** Начинает чтение с новой временной шкалы. */
     void startFresh();
+    /**
+     * Читает заданное число сэмплов.
+     *
+     * @param outputFrames число выходных сэмплов
+     * @return моноаудио с частотой 16 кГц
+     */
     float[] readSamples(int outputFrames);
+    /** Останавливает захват и удаляет непрочитанный звук. */
     void pause();
 }
 
-/** Captures PCM from a microphone and resamples it to the model's 16 kHz mono input. */
+/**
+ * Записывает PCM микрофона и преобразует его в моноаудио 16 кГц.
+ *
+ * @version 1.0.0
+ */
 final class MicrophoneInput implements SampleSource, AutoCloseable {
     private static final int[] SOURCE_RATES = {16000, 48000, 44100};
     private final TargetDataLine line;
@@ -45,7 +62,7 @@ final class MicrophoneInput implements SampleSource, AutoCloseable {
                     return new MicrophoneInput(line, format, "системный микрофон по умолчанию");
                 } catch (IllegalArgumentException | LineUnavailableException ignored) {
                     if (line != null) line.close();
-                    // Try another format or a specific mixer below.
+                    // Формат не открылся: проверяем следующий формат или устройство.
                 }
             }
         }
@@ -66,7 +83,7 @@ final class MicrophoneInput implements SampleSource, AutoCloseable {
                     return new MicrophoneInput(line, format, info.getName());
                 } catch (IllegalArgumentException | LineUnavailableException ignored) {
                     if (line != null) line.close();
-                    // This mixer reports support but could not open at the requested format.
+                    // Устройство заявляет поддержку формата, но открыть его не смогло.
                 }
             }
             if (capture) available.add(info.getName());

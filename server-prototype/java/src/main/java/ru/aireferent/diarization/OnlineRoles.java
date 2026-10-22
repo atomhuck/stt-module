@@ -7,9 +7,18 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Назначает роли по эталону, группам голосов и накопленным подтверждениям speaker ID.
+ *
+ * @version 1.0.0
+ */
 final class OnlineRoles {
     private static final double MIN_STABLE_EVIDENCE_SECONDS = 2.5;
     private static final double MIN_NEW_GROUP_SECONDS = 2.5;
+    /** Прототипы голоса одного интервьюера.
+     *
+     * @version 1.0.0
+     */
     private static final class Interviewer {
         final int number;
         final List<float[]> embeddings = new ArrayList<>();
@@ -121,6 +130,8 @@ final class OnlineRoles {
             confidence = confirmed ? (duration >= MIN_STABLE_EVIDENCE_SECONDS ? "высокая" : "средняя") : "низкая";
             if (duration >= 1.5) group.embeddings.add(embedding);
         } else if (stable != null) {
+            // Ранее подтверждённый speaker ID помогает короткой реплике,
+            // но не считается новым прямым голосовым совпадением.
             label = stable;
             decision = "speaker ID ранее подтверждён голосовым совпадением";
             confidence = "низкая";
