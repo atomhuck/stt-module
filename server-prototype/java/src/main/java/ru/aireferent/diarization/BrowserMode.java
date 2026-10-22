@@ -138,7 +138,8 @@ final class BrowserMode {
                 }
                 if (integrated && path.equals("/api/tts/event")) {
                     var event = Support.JSON.readTree(exchange.getRequestBody());
-                    active.ttsEvent(event.path("event").asText("unknown"), event.path("question").asText(""));
+                    active.ttsEvent(event.path("event").asText("unknown"), event.path("question").asText(""),
+                            event.path("voice").asText(""), event.path("voice_lang").asText(""));
                     reply(exchange, 200, Support.map("ok", true)); return;
                 }
                 if (integrated && path.equals("/api/ui/seen")) {
@@ -269,8 +270,8 @@ final class BrowserMode {
                 session = new LiveSession(diarizer, extractor, candidate, threshold, outputDir,
                         integrated ? "browser_mixed_microphone_system_audio" : "browser_microphone_system_audio",
                         integrated ? "browser_mixed_stream" : "browser_microphone_system_audio",
-                        integrated ? "browser_microphone" : "browser_system_audio",
-                        integrated ? "browser microphone + system audio" : "browser microphone + system audio",
+                        integrated ? "browser_mixed_microphone_system_audio" : "browser_system_audio",
+                        "browser microphone + system audio",
                         Support.RATE, 1,
                         seconds, .64, settleSeconds, (System.nanoTime() - startupAt) / 1e9, preset, metrics());
                 if (integrated) bridge = new IntegrationBridge(outputDir, artemUrl, metrics());
@@ -329,8 +330,8 @@ final class BrowserMode {
             if (bridge != null) bridge.suggestionSeen(id);
         }
 
-        synchronized void ttsEvent(String event, String question) {
-            if (bridge != null) bridge.ttsEvent(event, question);
+        synchronized void ttsEvent(String event, String question, String voice, String voiceLang) {
+            if (bridge != null) bridge.ttsEvent(event, question, voice, voiceLang);
         }
 
         synchronized void requestStop(String reason) {

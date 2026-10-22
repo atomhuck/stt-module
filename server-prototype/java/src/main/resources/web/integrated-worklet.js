@@ -44,9 +44,10 @@ class MonoPcmWorklet extends AudioWorkletProcessor {
       const frames = system[0]?.length || microphone[0]?.length || 128;
       for (let i = 0; i < frames; i++) {
         const mic = this.mono(microphone, i);
-        // Enrollment is microphone-only. During the interview, collapse both inputs
-        // into a single mono stream. This deliberately does not encode source identity.
-        const value = this.phase === 'enroll' ? mic : (mic + this.mono(system, i)) * 0.5;
+        const computer = this.mono(system, i);
+        // Enrollment and interview use the same mixed mono signal. Source identity
+        // is discarded before audio reaches Java or any model.
+        const value = (mic + computer) * 0.5;
         while (this.nextOutput <= this.inputIndex) {
           const fraction = this.inputIndex ? Math.max(0, Math.min(1, this.nextOutput - (this.inputIndex - 1))) : 1;
           const sample = this.previousInput + (value - this.previousInput) * fraction;

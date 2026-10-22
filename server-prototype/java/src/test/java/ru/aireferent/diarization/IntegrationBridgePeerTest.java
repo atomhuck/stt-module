@@ -14,9 +14,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IntegrationBridgePeerTest {
+    @Test
+    void rejects_preview_results_for_audio_already_covered_by_final_decision() {
+        assertTrue(IntegrationBridge.isPreviewAtOrBeforeDecision(142_500, 144_429));
+        assertTrue(IntegrationBridge.isPreviewAtOrBeforeDecision(144_429, 144_429));
+        assertFalse(IntegrationBridge.isPreviewAtOrBeforeDecision(144_430, 144_429));
+        assertFalse(IntegrationBridge.isPreviewAtOrBeforeDecision(10, 0));
+    }
+
     @Test
     void serializes_concurrent_audio_and_text_sends_on_one_websocket() throws Exception {
         AtomicInteger inFlight = new AtomicInteger();

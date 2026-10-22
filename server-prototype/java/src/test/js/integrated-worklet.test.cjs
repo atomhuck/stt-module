@@ -24,12 +24,12 @@ function feed(p, system, microphone) {
   return p.port.messages.find(message => message.type === 'audio');
 }
 
-test('enrollment sends only microphone audio in 160 ms mono frames', () => {
+test('enrollment mixes microphone and system audio in 160 ms mono frames', () => {
   const p = processor();
   p.port.onmessage({data: 'enroll'});
   const event = feed(p, .25, .75);
   assert.equal(event.buffer.byteLength, 5120);
-  assert.ok(new Int16Array(event.buffer).every(x => Math.abs(x - 24575) <= 1));
+  assert.ok(new Int16Array(event.buffer).every(x => Math.abs(x - 16383) <= 2));
 });
 
 test('interview mixes mic and system audio to one mono 160 ms frame', () => {

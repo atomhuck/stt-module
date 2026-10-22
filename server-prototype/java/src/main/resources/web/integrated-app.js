@@ -1,10 +1,14 @@
 const $ = id => document.getElementById(id);
 const enroll = $('enroll'), finish = $('finish');
+const ENROLLMENT_DURATION_MS = 10_000;
 let stream, display, context, micSource, systemSource, worklet, sessionId;
 let mode = 'idle', sequence = 0, closing = false, finishRequested = false, pending = Promise.resolve(), stopResolver;
+let enrollmentStartedAt = 0, enrollmentTimer, enrollmentFinishing = false;
 let startTime = 0, polling = false, currentQuestionKey = '', scheduledQuestionKey = '', questionTimer;
 let lastDecision = '', lastPreviewKey = '', lastPreviewId = '', lastReportSignature = '', eventLines = [];
 let voices = [], activeQuestion = null, questionBlocked = false, questionRetracted = false;
+let voiceRotationStartId = '';
+const questionVoiceAssignments = new Map();
 
 async function request(path, body, headers = {}) {
   const response = await fetch(path, {method: body === undefined ? 'GET' : 'POST', body,
@@ -25,8 +29,9 @@ function log(message) {
   $('log').prepend(row); eventLines.unshift(row);
   while (eventLines.length > 35) eventLines.pop()?.remove();
 }
-function recordTts(event, questionText) {
-  request('/api/tts/event', JSON.stringify({event, question:questionText}), {'Content-Type':'application/json'})
+function recordTts(event, questionText, voice) {
+  request('/api/tts/event', JSON.stringify({event, question:questionText,
+    voice:voice?.name || '', voice_lang:voice?.lang || ''}), {'Content-Type':'application/json'})
     .catch(error => showError(error.message));
 }
 function actionText(action) {
@@ -117,7 +122,7 @@ function renderTranscript(integration) {
 }
 function render(status) {
   const phase = status.phase || 'idle', integration = status.integration || {};
-  $('phase').textContent = ({idle:'Ожидание', enrolling:'Запись эталона с микрофона', preparing:'Создаём эталон',
+  $('phase').textContent = ({idle:'Ожидание', enrolling:'Запись эталона · микрофон + компьютер', preparing:'Создаём эталон',
     retry:'Повторите эталон', live:'Интервью · анализ идёт', stopping:'Завершаем анализ',
     finished:'Интервью завершено', error:'Ошибка обработки'})[phase] || phase;
   $('light').classList.toggle('active', phase === 'enrolling' || phase === 'live');
@@ -213,7 +218,7 @@ function render(status) {
     enroll.disabled = false; enroll.textContent = 'Повторить запись голоса'; finish.disabled = true;
   } else if (phase === 'live') {
     enroll.disabled = true; finish.disabled = false;
-    $('hint').textContent = 'Эталон записан с микрофона. В интервью микрофон и звук компьютера смешиваются в один mono PCM 16 кГц поток.';
+    $('hint').textContent = 'Эталон и интервью записываются из одного смешанного потока: микрофон + звук компьютера, моно PCM 16 кГц.';
   } else if (phase === 'finished' || phase === 'error') {
     enroll.disabled = false; enroll.textContent = 'Новое интервью'; finish.disabled = true;
   }
@@ -229,10 +234,11 @@ function speakQuestion(question, key) {
   $('asked').hidden = true; $('asked').disabled = true; $('skip').disabled = true;
   $('tts-state').textContent = 'Озвучиваю вопрос. После озвучки автоматически начнётся анализ ответа.';
   const utterance = new SpeechSynthesisUtterance(question.spoken || question.text);
-  const selected = voices.find(voice => voice.name === $('voice').value);
+  const selected = voiceForQuestion(question);
   if (selected) { utterance.voice = selected; utterance.lang = selected.lang; }
   else utterance.lang = 'ru-RU';
   utterance.rate = Number($('rate').value);
+  const voiceLabel = selected?.name || 'голос браузера по умолчанию';
   let done = false;
   const after = async () => {
     if (done || currentQuestionKey !== key || mode !== 'live') return;
@@ -240,28 +246,60 @@ function speakQuestion(question, key) {
     try { await request('/api/question/asked', new Uint8Array()); log('TTS завершён, поток ответа открыт'); }
     catch (error) { showError(error.message); }
   };
-  utterance.onstart = () => { recordTts('start', question.text); log(`TTS начал вопрос ${question.number || ''}`); };
-  utterance.onend = () => { recordTts('finish', question.text); after(); };
-  utterance.onerror = () => { recordTts('error', question.text); after(); };
+  utterance.onstart = () => { recordTts('start', question.text, selected); log(`TTS начал вопрос ${question.number || ''} · ${voiceLabel}`); };
+  utterance.onend = () => { recordTts('finish', question.text, selected); after(); };
+  utterance.onerror = () => { recordTts('error', question.text, selected); after(); };
   speechSynthesis.cancel(); speechSynthesis.speak(utterance);
-  log(`TTS озвучивает вопрос ${question.number || ''}`);
+  $('tts-state').textContent = `Озвучиваю голосом «${voiceLabel}». Уточнения сохраняют голос основного вопроса.`;
+  log(`TTS озвучивает вопрос ${question.number || ''} голосом «${voiceLabel}»`);
+}
+function voiceId(voice) { return voice.voiceURI || `${voice.name}|${voice.lang || ''}`; }
+function russianVoices() { return voices.filter(voice => /^ru(?:-|$)/i.test(voice.lang || '')); }
+function voiceForQuestion(question) {
+  if (!voices.length) loadVoices();
+  const russian = russianVoices();
+  const pool = russian.length ? russian : voices;
+  if (!pool.length) return null;
+  const qNumber = Number(question.number);
+  const questionId = Number.isFinite(qNumber) && qNumber > 0
+    ? String(qNumber) : String(question.questionId || question.text || questionKey(question));
+  const assigned = questionVoiceAssignments.get(questionId);
+  if (assigned) {
+    const existing = voices.find(voice => voiceId(voice) === assigned);
+    if (existing) return existing;
+    questionVoiceAssignments.delete(questionId);
+  }
+
+  if (!voiceRotationStartId) voiceRotationStartId = $('voice').value;
+  const firstVoiceId = voiceRotationStartId;
+  const firstIndex = Math.max(0, pool.findIndex(voice => voiceId(voice) === firstVoiceId));
+  const questionIndex = Number.isFinite(qNumber) && qNumber > 0
+    ? qNumber - 1 : questionVoiceAssignments.size;
+  const selected = pool[(firstIndex + questionIndex) % pool.length];
+  questionVoiceAssignments.set(questionId, voiceId(selected));
+  return selected;
 }
 function loadVoices() {
   if (!('speechSynthesis' in window)) return;
   voices = speechSynthesis.getVoices();
+  const russian = russianVoices(), available = russian.length ? russian : voices;
   const select = $('voice'), previous = select.value; select.replaceChildren();
-  for (const voice of voices) {
-    const option = document.createElement('option'); option.value = voice.name;
+  for (const voice of available) {
+    const option = document.createElement('option'); option.value = voiceId(voice);
     option.textContent = `${voice.name}${voice.lang ? ` · ${voice.lang}` : ''}`; select.append(option);
   }
-  const preferred = voices.find(voice => voice.name === previous) || voices.find(voice => /^ru/i.test(voice.lang));
-  if (preferred) select.value = preferred.name;
+  const preferred = available.find(voice => voiceId(voice) === previous) || available[0];
+  if (preferred) select.value = voiceId(preferred);
+  const detail = $('voice-state');
+  if (detail) detail.textContent = russian.length
+    ? `Русских голосов доступно: ${russian.length}. Голоса основных вопросов чередуются по кругу; уточнения сохраняют голос своего вопроса.${russian.length < 6 ? ' Для шести основных вопросов часть голосов повторится.' : ' Для шести вопросов будут разные голоса.'}`
+    : 'Русские голоса браузера не найдены. Проверьте установленные голоса; для вопросов будет использован доступный голос браузера.';
 }
 if ('speechSynthesis' in window) { speechSynthesis.onvoiceschanged = loadVoices; loadVoices(); }
 $('rate').oninput = () => $('rate-value').textContent = Number($('rate').value).toFixed(2).replace('.', ',');
 $('tts-enabled').onchange = () => {
   if (!$('tts-enabled').checked && 'speechSynthesis' in window) {
-    if (speechSynthesis.speaking && activeQuestion) recordTts('cancel', activeQuestion.text);
+    if (speechSynthesis.speaking && activeQuestion) recordTts('cancel', activeQuestion.text, voiceForQuestion(activeQuestion));
     speechSynthesis.cancel();
   }
   scheduledQuestionKey = '';
@@ -277,6 +315,7 @@ function stopAudio() {
   worklet.port.postMessage('stop'); return ended;
 }
 function releaseAudio() {
+  clearTimeout(enrollmentTimer); enrollmentTimer = undefined;
   for (const captured of [stream, display]) captured?.getTracks().forEach(track => {
     track.onended = null; track.stop();
   });
@@ -290,6 +329,7 @@ function systemAudioAvailable() {
 async function sourceLost(reason) {
   if (closing || mode === 'done' || mode === 'idle') return;
   closing = true;
+  clearTimeout(enrollmentTimer); enrollmentTimer = undefined;
   showError(reason === 'system_audio_lost'
     ? 'Демонстрация экрана или системный звук прервались. Сохраняем обработанную часть интервью.'
     : 'Микрофон отключился. Сохраняем обработанную часть интервью.');
@@ -331,6 +371,8 @@ async function prepareAudio() {
 async function startEnrollment() {
   clearError(); enroll.disabled = true; mode = 'opening'; sessionId = undefined;
   currentQuestionKey = scheduledQuestionKey = ''; lastDecision = ''; lastPreviewKey = lastPreviewId = '';
+  questionVoiceAssignments.clear(); voiceRotationStartId = '';
+  enrollmentFinishing = false; enrollmentStartedAt = 0;
   finishRequested = false; lastReportSignature = '';
   $('final-report').hidden = true; $('report-body').hidden = true;
   $('report-state').textContent = 'Итоговая оценка появится после завершения интервью.';
@@ -344,13 +386,18 @@ async function startEnrollment() {
     if (!systemAudioAvailable() || mode !== 'opening') throw new Error('Демонстрация экрана прервалась до начала записи.');
     const status = await request('/api/enrollment/start', new Uint8Array());
     sessionId = status.session_id; pending = Promise.resolve(); sequence = 0; mode = 'enroll'; startTime = performance.now();
+    enrollmentStartedAt = performance.now();
     worklet.port.postMessage('enroll');
-    enroll.disabled = false; enroll.textContent = 'Завершить запись эталона';
-    $('hint').textContent = 'Говорите в микрофон около 10 секунд. В эталон попадёт только микрофон; системный звук нужен для интервью.';
-    render(status); log('Началась запись эталона кандидата с микрофона');
+    enroll.disabled = false; enroll.textContent = 'Остановить запись эталона';
+    $('hint').textContent = 'Говорите около 10 секунд. Эталон записывается из общего сигнала микрофона и звука компьютера; во время регистрации должен звучать только кандидат.';
+    enrollmentTimer = setTimeout(() => { if (mode === 'enroll') finishEnrollment(); }, ENROLLMENT_DURATION_MS);
+    render(status); log('Началась десятисекундная запись смешанного эталона: микрофон + звук компьютера');
   } catch (error) { showError(error.message); releaseAudio(); mode = 'idle'; enroll.disabled = false; }
 }
 async function finishEnrollment() {
+  if (mode !== 'enroll' || enrollmentFinishing) return;
+  enrollmentFinishing = true;
+  clearTimeout(enrollmentTimer); enrollmentTimer = undefined;
   enroll.disabled = true;
   try {
     await stopAudio(); mode = 'preparing'; await pending;
@@ -366,7 +413,7 @@ async function finishEnrollment() {
     showError(error.message);
     if (sessionId) try { await request('/api/finish', new Uint8Array(), {'X-Stop-Reason':'capture_error'}); } catch (_) {}
     releaseAudio(); mode = 'done'; enroll.disabled = false;
-  }
+  } finally { enrollmentFinishing = false; }
 }
 async function finishInterview() {
   if (closing || mode !== 'live') return;
@@ -392,7 +439,9 @@ $('skip').onclick = async () => {
   catch (error) { showError(error.message); $('skip').disabled = false; }
 };
 setInterval(async () => {
-  if (mode === 'enroll' || mode === 'live') $('timer').textContent = time((performance.now() - startTime) / 1000);
+  if (mode === 'enroll' && enrollmentStartedAt) {
+    $('timer').textContent = time(Math.max(0, ENROLLMENT_DURATION_MS - (performance.now() - enrollmentStartedAt)) / 1000);
+  } else if (mode === 'live') $('timer').textContent = time((performance.now() - startTime) / 1000);
   if (polling) return; polling = true;
   try {
     const status = await request('/api/status');

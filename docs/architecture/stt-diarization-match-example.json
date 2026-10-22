@@ -1,0 +1,44 @@
+{
+  "description": "Сокращённый учебный пример из прогона 20261021-025953-79c7ff7e. Обёртка inputs/matching/result создана для объяснения; в приложении данные лежат в отдельных файлах.",
+  "timebase": {
+    "unit": "seconds_from_interview_start",
+    "sample_rate_hz": 16000
+  },
+  "inputs": {
+    "diarization_segment_from_segments_json": {
+      "start": 9.301,
+      "end": 18.029,
+      "label": "Кандидат",
+      "source_speaker_id": "2",
+      "candidate_similarity": 0.8639,
+      "interviewer_similarity": 0.1607,
+      "confidence": "высокая",
+      "confidence_percent": 93
+    },
+    "vosk_word_before_role_enrichment": {
+      "word": "виртуальная",
+      "start": 11.269,
+      "end": 11.88,
+      "confidence": 1.0
+    }
+  },
+  "matching": {
+    "algorithm": "Выбрать голосовой сегмент с максимальным пересечением со словом. Пересечение должно покрывать не менее половины длительности слова; второй по величине вариант должен занимать менее 75% пересечения лидера.",
+    "word_duration_s": 0.611,
+    "overlap_with_candidate_segment_s": 0.611,
+    "word_coverage_percent": 100,
+    "assigned_role": "Кандидат"
+  },
+  "result_from_timeline_json": {
+    "word": "виртуальная",
+    "word_id": "mixed:1:2",
+    "start": 11.269,
+    "end": 11.88,
+    "role": "Кандидат",
+    "role_status": "confirmed",
+    "source": "mixed",
+    "model": "vosk",
+    "status": "final",
+    "confidence": 1.0
+  }
+}

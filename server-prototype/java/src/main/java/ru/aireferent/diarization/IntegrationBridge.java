@@ -426,9 +426,10 @@ final class IntegrationBridge implements AutoCloseable {
         logQuietly(Support.map("type", "question_skipped", "audio_s", capturedSamples / (double) RATE));
     }
 
-    synchronized void ttsEvent(String event, String questionText) {
+    synchronized void ttsEvent(String event, String questionText, String voice, String voiceLang) {
         if (!List.of("start", "finish", "cancel", "error").contains(event)) return;
         logQuietly(Support.map("type", "tts_" + event, "question", questionText,
+                "voice", voice, "voice_lang", voiceLang,
                 "audio_sample", capturedSamples, "audio_s", Support.round(capturedSamples / (double) RATE, 3),
                 "received_wall_s", Support.round((System.nanoTime() - startedNanos) / 1e9, 3)));
     }
@@ -613,9 +614,16 @@ final class IntegrationBridge implements AutoCloseable {
             String requestId = data.path("requestId").asText("");
             long requestOrdinal = parsePeekRequestOrdinal(requestId);
             if (requestOrdinal > 0 && requestOrdinal < lastAppliedPeekRequestId) return;
+            long previewSample = peekRequestSamples.getOrDefault(requestId, lastPeekSample);
+            if (isPreviewAtOrBeforeDecision(previewSample, decisionAudioEnd)) {
+                logQuietly(Support.map("type", "preliminary_hint_ignored",
+                        "reason", "answer_decision_already_received",
+                        "audio_s", Support.round(previewSample / (double) RATE, 3),
+                        "decision_audio_end_s", Support.round(decisionAudioEnd / (double) RATE, 3)));
+                return;
+            }
             lastAppliedPeekRequestId = Math.max(lastAppliedPeekRequestId, requestOrdinal);
             preview = event;
-            long previewSample = peekRequestSamples.getOrDefault(requestId, lastPeekSample);
             long requestedAt = peekRequestNanos.getOrDefault(requestId, System.nanoTime());
             peekComputeLatencies.add(data.path("computeMs").isNumber()
                     ? data.path("computeMs").asDouble() : Math.max(0, (System.nanoTime() - requestedAt) / 1e6));
@@ -667,6 +675,11 @@ final class IntegrationBridge implements AutoCloseable {
             }
             decisionTimes.put(answerId, decisionAtNanos);
             recordPreliminaryHintLatency(answerId);
+            if (preview != null) {
+                preview = null;
+                previewEventId = null;
+                logQuietly(Support.map("type", "preliminary_hint_retracted", "reason", "final_decision_received"));
+            }
             decision = event;
         }
         if ("refined".equals(type)) {
@@ -871,6 +884,10 @@ final class IntegrationBridge implements AutoCloseable {
         if (requestId == null || !requestId.startsWith("peek-")) return 0;
         try { return Long.parseLong(requestId.substring(5)); }
         catch (NumberFormatException ignored) { return 0; }
+    }
+
+    static boolean isPreviewAtOrBeforeDecision(long previewSample, long decisionAudioEnd) {
+        return decisionAudioEnd > 0 && previewSample <= decisionAudioEnd;
     }
 
     private void sampleCpuLoad() {
