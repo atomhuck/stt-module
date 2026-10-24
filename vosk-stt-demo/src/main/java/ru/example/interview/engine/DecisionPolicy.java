@@ -17,10 +17,10 @@ public final class DecisionPolicy {
     private final double weakCoverage;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Задаёт пороги перехода между вопросами.
      *
-     * @param maxFollowUps параметр операции
-     * @param weakCoverage параметр операции
+     * @param maxFollowUps максимум уточнений на один вопрос
+     * @param weakCoverage порог слабого покрытия ответа
      */
     public DecisionPolicy(int maxFollowUps, double weakCoverage) {
         this.maxFollowUps = maxFollowUps;
@@ -34,9 +34,9 @@ public final class DecisionPolicy {
      * @param level уровень вопроса
      * @param a анализ ответа
      * @param prevCoverage покрытие предыдущей попытки
-     * @param followUpsUsed параметр операции
-     * @param asked параметр операции
-     * @param hits параметр операции
+     * @param followUpsUsed число уже заданных уточнений
+     * @param asked признак заданного вопроса
+     * @param hits совпадения с понятиями эталона
      * @return выбранное действие и его причина
      */
     public Decision decide(CompiledQuestion q, Level level, AnswerAnalysis a, double prevCoverage,

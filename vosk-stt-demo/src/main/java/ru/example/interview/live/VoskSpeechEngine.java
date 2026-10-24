@@ -2,14 +2,17 @@ package ru.example.interview.live;
 
 import ru.example.vosk.service.SpeechSession;
 
+/**
+ * Адаптер: потоковый Vosk-распознаватель → интерфейс SpeechEngine.
+ *
  * @version 1.0.0
-/** Адаптер: потоковый Vosk-распознаватель → интерфейс SpeechEngine. */
+ */
 public final class VoskSpeechEngine implements SpeechEngine {
 
     private final SpeechSession session;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Подключает Vosk-сессию к движку интервью.
      *
      * @param session WebSocket-соединение
      */
@@ -22,7 +25,7 @@ public final class VoskSpeechEngine implements SpeechEngine {
      *
      * @param pcm байты PCM16 без WAV-заголовка
      * @param len число значимых байтов
-     * @return результат операции
+     * @return частичный или итоговый текст Vosk
      */
     @Override
     public Result accept(byte[] pcm, int len) {
@@ -33,7 +36,7 @@ public final class VoskSpeechEngine implements SpeechEngine {
     /**
      * Обрабатывает аудио и возвращает результат распознавания.
      *
-     * @return результат операции
+     * @return итоговый текст после сброса Vosk
      */
     @Override
     public Result finish() {

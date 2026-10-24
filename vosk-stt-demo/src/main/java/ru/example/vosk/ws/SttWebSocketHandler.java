@@ -33,16 +33,16 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     private final Map<String, SpeechSession> sessions = new ConcurrentHashMap<>();
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Подключает WebSocket-канал потокового Vosk.
      *
-     * @param factory параметр операции
+     * @param factory фабрика речевых сессий
      */
     public SttWebSocketHandler(SpeechSessionFactory factory) {
         this.factory = factory;
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Выделяет распознаватель Vosk новому соединению.
      *
      * @param session WebSocket-соединение
      * @throws Exception если операция или подключённый сервис завершились ошибкой
@@ -105,7 +105,7 @@ public class SttWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Освобождает распознаватель после закрытия соединения.
      *
      * @param session WebSocket-соединение
      * @param status код закрытия соединения

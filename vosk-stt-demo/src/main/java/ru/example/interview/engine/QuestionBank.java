@@ -3,8 +3,11 @@ package ru.example.interview.engine;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Читает questions.tsv (см. tools/xlsx_to_tsv.py).
+ *
  * @version 1.0.0
-/** Читает questions.tsv (см. tools/xlsx_to_tsv.py). */
+ */
 public final class QuestionBank {
     private QuestionBank() {}
 

@@ -19,6 +19,7 @@ src = Path(sys.argv[1])
 dst = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).resolve().parent.parent / "src/main/resources/interview/questions.tsv"
 
 def clean(v):
+    """Нормализовать пробелы в одной ячейке перед сохранением в TSV."""
     return re.sub(r"\s+", " ", str(v or "")).strip()
 
 ws = load_workbook(src, read_only=True).active

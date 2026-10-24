@@ -41,6 +41,9 @@ jobs:
       - name: Interview browser tests
         working-directory: vosk-stt-demo
         run: node --test src/test/js/interview-client-test.js
+      - name: Whisper fake backend contract
+        working-directory: vosk-stt-demo
+        run: python -m unittest discover -s tools -p 'test_*.py'
       - name: Validate HTTP contracts
         run: |
           npx --yes @redocly/cli@2.64.1 lint docs/api/openapi.yaml

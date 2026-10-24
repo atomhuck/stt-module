@@ -51,13 +51,17 @@ class FakeBackend:
     """Для проверки связки с Java без модели."""
 
     def transcribe(self, pcm):
+        """Вернуть предсказуемый текст по длительности PCM16-аудио."""
         return "[fake] %d мс аудио" % (len(pcm) // 32)
 
     def transcribe_detailed(self, pcm):
+        """Вернуть тот же текст без временных меток слов."""
         return {"text": self.transcribe(pcm), "words": []}
 
 
 class FasterWhisperBackend:
+    """Загружает модель один раз и сериализует обращения к ней между HTTP-потоками."""
+
     def __init__(self, model, device, compute_type, prompt, beam_size, cpu_threads):
         from faster_whisper import WhisperModel   # импорт здесь, чтобы --backend fake работал без библиотеки
 
@@ -69,6 +73,7 @@ class FasterWhisperBackend:
         self.lock = threading.Lock()    # один распознавательный проход за раз
 
     def transcribe(self, pcm, vad=True):
+        """Распознать сырой PCM16 16 кГц; vad отключается только при прогреве."""
         import numpy as np
 
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
@@ -86,6 +91,7 @@ class FasterWhisperBackend:
             return " ".join(s.text.strip() for s in segments).strip()
 
     def transcribe_detailed(self, pcm):
+        """Вернуть текст и слова с временными метками относительно начала PCM."""
         import numpy as np
 
         audio = np.frombuffer(pcm, dtype=np.int16).astype(np.float32) / 32768.0
@@ -105,12 +111,14 @@ class FasterWhisperBackend:
         return {"text": " ".join(s.text.strip() for s in collected).strip(), "words": words}
 
     def warmup(self):
+        """Прогреть модель до приёма пользовательских запросов."""
         t = time.time()
         self.transcribe(b"\x00\x00" * 16000, vad=False)
         print("Прогрев: %.1f с" % (time.time() - t), flush=True)
 
 
 def make_handler(backend):
+    """Создать HTTP-обработчик для переданного backend с маршрутами расшифровки."""
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, fmt, *args):
             pass
@@ -153,6 +161,7 @@ def make_handler(backend):
 
 
 def main():
+    """Прочитать параметры запуска, загрузить backend и обслуживать локальный HTTP."""
     here = Path(__file__).resolve().parent
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--model", default="small", help="tiny | base | small | medium | large-v3 (или путь к модели)")

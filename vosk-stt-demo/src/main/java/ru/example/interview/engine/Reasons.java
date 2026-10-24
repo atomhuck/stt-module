@@ -1,14 +1,17 @@
 package ru.example.interview.engine;
 
+/**
+ * Человекочитаемые причины решений (для Excel-отчёта; на странице есть такой же словарь).
+ *
  * @version 1.0.0
-/** Человекочитаемые причины решений (для Excel-отчёта; на странице есть такой же словарь). */
+ */
 public final class Reasons {
     private Reasons() {}
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Преобразует код причины в пользовательский текст.
      *
-     * @param reason параметр операции
+     * @param reason код причины решения
      * @return строка результата
      */
     public static String text(String reason) {
@@ -28,9 +31,9 @@ public final class Reasons {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Преобразует код действия в пользовательский текст.
      *
-     * @param action параметр операции
+     * @param action код действия
      * @return строка результата
      */
     public static String action(String action) {

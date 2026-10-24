@@ -44,7 +44,7 @@ public final class Tokenizer {
     /**
      * Определяет, исключается ли основа слова из анализа ответа.
      *
-     * @param stem параметр операции
+     * @param stem основа слова
      * @return признак выполнения условия
      */
     public static boolean isStop(String stem) {
@@ -57,9 +57,8 @@ public final class Tokenizer {
      * @param hashes   выход: хеши основ
      * @param stems    выход (может быть null): строки основ
      * @param surfaces выход (может быть null): исходные слова в нижнем регистре
-     * @return число токенов
      * @param text текст ответа или документа
-     * @return целочисленное значение
+     * @return число токенов
      */
     public static int tokenize(CharSequence text, long[] hashes, String[] stems, String[] surfaces) {
         final int max = hashes.length;
@@ -148,11 +147,14 @@ public final class Tokenizer {
         return h;
     }
 
-     * @param h параметр операции
-     * @param from параметр операции
+    /**
+     * Ключ n-граммы из хешей токенов (для поиска фраз вида «сборщик мусора»).
+     *
+     * @param h хеш массива токенов
+     * @param from начальная позиция
      * @param len число значимых байтов
      * @return значение в миллисекундах или счётчик
-    /** Ключ n-граммы из хешей токенов (для поиска фраз вида «сборщик мусора»). */
+     */
     public static long ngramKey(long[] h, int from, int len) {
         if (len == 1) return h[from];
         long k = 0x9E3779B97F4A7C15L ^ len;

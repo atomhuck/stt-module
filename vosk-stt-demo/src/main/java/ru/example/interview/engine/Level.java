@@ -1,7 +1,10 @@
 package ru.example.interview.engine;
 
+/**
+ * Уровень вопроса. sufficientCoverage — доля ключевых понятий эталона, после которой ответ считается достаточным.
+ *
  * @version 1.0.0
-/** Уровень вопроса. sufficientCoverage — доля ключевых понятий эталона, после которой ответ считается достаточным. */
+ */
 public enum Level {
     INTERN("Стажёр", 0.40),
     JUNIOR("Junior", 0.45),
@@ -19,8 +22,8 @@ public enum Level {
     /**
      * Преобразует русское или английское название уровня в значение перечисления.
      *
-     * @param s параметр операции
-     * @return результат операции
+     * @param s строковое название уровня
+     * @return соответствующий уровень интервью
      */
     public static Level parse(String s) {
         String t = s.trim().toLowerCase().replace('ё', 'е');

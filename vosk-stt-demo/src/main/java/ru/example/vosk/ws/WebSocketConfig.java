@@ -21,10 +21,10 @@ public class WebSocketConfig implements WebSocketConfigurer {
     private final InterviewWebSocketHandler interviewHandler;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Регистрирует WebSocket-каналы STT и интервью.
      *
-     * @param sttHandler параметр операции
-     * @param interviewHandler параметр операции
+     * @param sttHandler обработчик потокового STT
+     * @param interviewHandler обработчик интервью
      */
     public WebSocketConfig(SttWebSocketHandler sttHandler, InterviewWebSocketHandler interviewHandler) {
         this.sttHandler = sttHandler;
@@ -34,7 +34,7 @@ public class WebSocketConfig implements WebSocketConfigurer {
     /**
      * Регистрирует каналы потокового STT и интервью.
      *
-     * @param registry параметр операции
+     * @param registry реестр WebSocket-маршрутов
      */
     @Override
     public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {

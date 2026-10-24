@@ -4,9 +4,11 @@
 | --- | --- |
 | Собрать и запустить оба компонента | [README](../README.md), [общее демо](../server-prototype/java/INTEGRATED_DEMO.md) |
 | Запустить Vosk и интервью отдельно | [Сервис Vosk и интервью](vosk-interview.md) |
+| Понять правила вопросов, оценки и XLSX | [Аналитика интервью](analytics.md) |
 | Выбрать режим диаризации | [CLI](cli.md) |
 | Подготовить модели и проверить сборку | [Разработка](development.md) |
-| Понять поток аудио и границы компонентов | [Архитектура](architecture/README.md), [ADR](adr/README.md) |
+| Понять текущий поток аудио и границы компонентов | [Архитектура](architecture/README.md), [ADR](adr/README.md) |
+| Увидеть предлагаемое разделение на два микросервиса | [Схема и переход](architecture/proposed-microservices.md) |
 | Вызвать HTTP или WebSocket API | [Карта протоколов](api/README.md), [WebSocket](api/websocket.md) |
 | Разобрать результаты | [JSON, CSV и XLSX](output-formats.md) |
 

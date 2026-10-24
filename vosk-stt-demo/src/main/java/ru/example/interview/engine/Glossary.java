@@ -32,7 +32,7 @@ public final class Glossary {
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает записи глоссария.
      *
      * @return список результатов
      */
@@ -44,7 +44,7 @@ public final class Glossary {
      * Разбирает словарь речевых вариантов и видов терминов.
      *
      * @param text текст ответа или документа
-     * @return результат операции
+     * @return значение parse
      */
     public static Glossary parse(String text) {
         List<Entry> out = new ArrayList<>();

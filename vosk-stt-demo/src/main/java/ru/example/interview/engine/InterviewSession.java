@@ -85,9 +85,12 @@ public final class InterviewSession {
     private boolean finished;
     private Snapshot undo;
 
+    /**
+     * @param levels уровни вопросов; null/пусто — все. Порядок: Стажёр → Junior → Middle → Senior.
+     *
      * @param kb скомпилированный банк знаний
      * @param policy политика выбора следующего действия
-    /** @param levels уровни вопросов; null/пусто — все. Порядок: Стажёр → Junior → Middle → Senior. */
+     */
     public InterviewSession(InterviewKnowledge kb, List<Level> levels, DecisionPolicy policy) {
         this.kb = kb;
         this.analyzer = kb.analyzer();
@@ -111,17 +114,23 @@ public final class InterviewSession {
         return prompt(current, false, 0);
     }
 
+    /**
+     * Горячий путь.
+     *
      * @param text текст ответа или документа
      * @param timing паузы между состояниями интервью
      * @return решение и следующий шаг интервью
-    /** Горячий путь. */
+     */
     public synchronized Step submit(String text, AnswerTiming timing) {
         return submit(text, text, timing);
     }
 
+    /**
+     * @param text текст для анализа (термины приведены к каноническим именам), @param display — текст для людей
+     *
      * @param timing паузы между состояниями интервью
      * @return решение и следующий шаг интервью
-    /** @param text текст для анализа (термины приведены к каноническим именам), @param display — текст для людей */
+     */
     public synchronized Step submit(String text, String display, AnswerTiming timing) {
         if (current == null) throw new IllegalStateException("Интервью не начато или завершено");
         QuestionRun run = current;
@@ -167,15 +176,18 @@ public final class InterviewSession {
 
     // ------------------------------------------------------------------ предварительное решение и откат
 
+    /**
+     * Что решила бы система по этому тексту; сессию не меняет.
+     *
      * @version 1.0.0
-    /** Что решила бы система по этому тексту; сессию не меняет. */
+     */
     public record Peek(boolean followUp, String reason, double coverage, int words, String followUpQuestion) {}
 
     /**
      * «Примерка» решения: используется на мягком конце ответа — решение уже готово, но пока не принято,
      * и если человек продолжит говорить, ничего не нужно откатывать.
      * @param text текст ответа или документа
-     * @return результат операции
+     * @return значение peek
      */
     public synchronized Peek peek(String text) {
         if (current == null) return new Peek(false, "finished", 0, 0, null);
@@ -274,8 +286,11 @@ public final class InterviewSession {
                 att.promptText, true, idx);
     }
 
+    /**
+     * Ссылка на конкретный ответ — чтобы точный текст можно было подменить позже, в том числе из другого потока.
+     *
      * @version 1.0.0
-    /** Ссылка на конкретный ответ — чтобы точный текст можно было подменить позже, в том числе из другого потока. */
+     */
     public static final class AttemptRef {
         final QuestionRun run;
         final Attempt attempt;
@@ -287,9 +302,9 @@ public final class InterviewSession {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Возвращает ссылку на последнюю попытку для асинхронного уточнения текста.
      *
-     * @return результат операции
+     * @return последняя попытка либо null до первого ответа
      */
     public synchronized AttemptRef lastAttempt() {
         return lastAttempt == null ? null : new AttemptRef(lastRun, lastAttempt);
@@ -323,7 +338,7 @@ public final class InterviewSession {
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает банк вопросов текущей сессии.
      *
      * @return подготовленный банк знаний
      */
@@ -344,11 +359,14 @@ public final class InterviewSession {
         return InterviewScorer.score(kb, answered, plan.size(), !finished);
     }
 
+    /**
+     * Полные данные для отчёта (Excel). Содержит эталонные ответы — в браузер не отправлять.
+     *
      * @param candidate имя кандидата
      * @param startedAt время начала интервью
      * @param settings настройки для листа методики
-     * @return результат операции
-    /** Полные данные для отчёта (Excel). Содержит эталонные ответы — в браузер не отправлять. */
+     * @return данные для отчёта с вопросами и попытками
+     */
     public synchronized InterviewDetails details(String candidate, java.time.Instant startedAt,
                                                  java.util.Map<String, String> settings) {
         List<QuestionRun> answered = new ArrayList<>();

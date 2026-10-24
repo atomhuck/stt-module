@@ -283,18 +283,18 @@ public final class InterviewKnowledge {
     // ------------------------------------------------------------------ доступ
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает скомпилированные вопросы.
      *
-     * @return результат операции
+     * @return скомпилированные вопросы
      */
     public CompiledQuestion[] questions() {
         return compiled;
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Находит вопрос по идентификатору.
      *
-     * @param id параметр операции
+     * @param id идентификатор вопроса
      * @return скомпилированный вопрос
      */
     public CompiledQuestion byId(int id) {
@@ -302,22 +302,28 @@ public final class InterviewKnowledge {
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает анализатор ответов для этого банка.
      *
-     * @return результат операции
+     * @return анализатор ответов
      */
     public AnswerAnalyzer analyzer() {
         return analyzer;
     }
 
-     * @return результат операции
-    /** Исправляет «услышанные» Vosk английские термины (хешмеп → HashMap). */
+    /**
+     * Исправляет «услышанные» Vosk английские термины (хешмеп → HashMap).
+     *
+     * @return значение normalizer
+     */
     public TermNormalizer normalizer() {
         return normalizer;
     }
 
-     * @return результат операции
-    /** Русское чтение английских терминов для озвучки. */
+    /**
+     * Русское чтение английских терминов для озвучки.
+     *
+     * @return значение spoken
+     */
     public SpokenText spoken() {
         return spoken;
     }
@@ -325,7 +331,7 @@ public final class InterviewKnowledge {
     /**
      * Присоединяет словарь произношения вопросов.
      *
-     * @param spoken параметр операции
+     * @param spoken словарь произношения
      * @return подготовленный банк знаний
      */
     public InterviewKnowledge withSpoken(SpokenText spoken) {
@@ -334,9 +340,9 @@ public final class InterviewKnowledge {
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает текст словарной единицы.
      *
-     * @param vocabId параметр операции
+     * @param vocabId идентификатор термина в словаре
      * @return строка результата
      */
     public String label(int vocabId) {
@@ -344,17 +350,17 @@ public final class InterviewKnowledge {
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает тип словарной единицы.
      *
-     * @param vocabId параметр операции
-     * @return результат операции
+     * @param vocabId идентификатор термина в словаре
+     * @return вид термина в словаре
      */
     public byte kindOf(int vocabId) {
         return kind[vocabId];
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает размер словаря.
      *
      * @return целочисленное значение
      */
@@ -365,7 +371,7 @@ public final class InterviewKnowledge {
     /**
      * Прогрев JIT: прогоняем несколько «интервью», где ответом служит сам эталон.
      * Без прогрева первые вызовы в холодной JVM заметно медленнее.
-     * @param rounds параметр операции
+     * @param rounds число прогревочных итераций
      */
     public void warmUp(int rounds) {
         DecisionPolicy policy = new DecisionPolicy(2, 0.08);

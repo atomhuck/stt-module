@@ -30,7 +30,7 @@
 | `service_status` | `whisper=disabled|configured`, `whisperUrl`; configured не означает, что сервер Whisper уже доступен. |
 | `partial` | `text` — изменяемый текст Vosk. |
 | `preview` | `requestId`, `action`, `reason`, `coveragePercent`, `answerWords`, `recognized`, `suggestedFollowUp`, `readOnly=true`, `computeMs`. Это только подсказка. |
-| `decision` | `action=ASK_FOLLOW_UP|NEXT_QUESTION|FINISH`, `reason`, `coveragePercent`, `answerWords`, `recognized`, `timing`. Решение может быть отменено в окне `graceMs`. |
+| `decision` | `answerId`, `action=ASK_FOLLOW_UP|NEXT_QUESTION|FINISH`, `reason`, `coveragePercent`, `answerWords`, `recognized`, `timing`. Решение может быть отменено в окне `graceMs`. |
 | `retract` | `reason=speech_resumed`, возможно `question` с восстановленным текущим вопросом. |
 | `refined` | Уточнённый `text` и, при детальном Whisper, `words`, `trimStartMs`, `answerId`. При текстовом fallback слова отсутствуют. |
 | `whisper_error` | `answerId`, `message`; основной анализ при этом сохраняется. |

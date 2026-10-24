@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 /**
  * Склейка конвейера для одного подключения: звук → Vosk → конец ответа → решение → следующий вопрос.
  *
- * <h3>Синхронизация: не перебивать и не терять слова</h3>
+ * <h2>Синхронизация: не перебивать и не терять слова</h2>
  * Конец ответа проходит три стадии, и на каждой человек может продолжить говорить:
  * <ol>
  *   <li><b>Мягкий конец</b> (тишина ≈ 0,45 с): распознавание «дожимается» (flush), так что текст полный;
@@ -43,6 +43,11 @@ public final class LiveInterview {
      * @version 1.0.0
      */
     public interface Sender {
+        /**
+         * Передаёт одно событие активного интервью клиенту.
+         *
+         * @param message событие с полем type
+         */
         void send(Map<String, Object> message);
     }
 
@@ -57,9 +62,9 @@ public final class LiveInterview {
      */
     public record Timing(int nextExtraMs, int otherNextExtraMs, int followUpExtraMs, int graceMs) {
         /**
-         * Выполняет операцию публичного контракта компонента.
+         * Задаёт паузы интервью по умолчанию в миллисекундах.
          *
-         * @return результат операции
+         * @return стандартные интервалы между состояниями
          */
         public static Timing defaults() {
             return new Timing(150, 600, 1500, 1000);
@@ -111,7 +116,7 @@ public final class LiveInterview {
     private long lastRtfWarn;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Связывает распознавание, детектор речи и состояние интервью.
      *
      * @param speech речевой движок
      * @param interview состояние интервью
@@ -128,7 +133,7 @@ public final class LiveInterview {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Задаёт ограничения времени для текущего интервью.
      *
      * @param timing паузы между состояниями интервью
      */
@@ -136,18 +141,24 @@ public final class LiveInterview {
         this.timing = timing;
     }
 
-     * @param transcriber параметр операции
-     * @param waitMs параметр операции
-    /** Необязательный второй проход распознавания (Whisper). */
+    /**
+     * Необязательный второй проход распознавания (Whisper).
+     *
+     * @param transcriber второй проход распознавания
+     * @param waitMs предел ожидания результата Whisper в миллисекундах
+     */
     public void setTranscriber(Transcriber transcriber, long waitMs) {
         this.transcriber = transcriber;
         this.pendingWaitMs = waitMs;
     }
 
+    /**
+     * Куда и от чьего имени сохранять итоговый отчёт (Excel).
+     *
      * @param exporter экспортёр отчёта
      * @param candidate имя кандидата
      * @param settings настройки для листа методики
-    /** Куда и от чьего имени сохранять итоговый отчёт (Excel). */
+     */
     public void setExport(ReportExporter exporter, String candidate, Map<String, String> settings) {
         this.exporter = exporter;
         this.candidate = candidate == null ? "" : candidate.trim();
@@ -179,9 +190,12 @@ public final class LiveInterview {
         phase = Phase.LISTENING;
     }
 
+    /**
+     * Рассчитывает предварительную подсказку тем же анализатором без перехода к следующему вопросу.
+     *
      * @param displayText текст для показа пользователю
      * @param requestId идентификатор предварительного запроса
-    /** Read-only preview for the combined demo. It uses the same policy/analyzer without advancing the interview. */
+     */
     public void onPeek(String displayText, String requestId) {
         if (finished || phase == Phase.IDLE || phase == Phase.WAIT_READY || displayText == null || displayText.isBlank())
             return;
@@ -204,7 +218,7 @@ public final class LiveInterview {
     /**
      * Режим «в наушниках»: микрофон открыт уже во время озвучки вопроса, и клиент сообщает, когда она закончилась
      * (мс после «готов»). Время озвучки не считается задержкой ответа: скорость оценивается от конца вопроса.
-     * @param afterReadyMs параметр операции
+     * @param afterReadyMs задержка после окончания TTS в миллисекундах
      */
     public void onTtsEnd(long afterReadyMs) {
         ttsEndMs = Math.max(0, afterReadyMs);

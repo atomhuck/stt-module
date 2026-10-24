@@ -25,7 +25,7 @@ public record CompiledQuestion(Question question, int[] poolIds, double[] poolW,
     public record FollowUp(String text, int[] poolIdx) {}
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает идентификатор вопроса.
      *
      * @return целочисленное значение
      */
@@ -34,16 +34,16 @@ public record CompiledQuestion(Question question, int[] poolIds, double[] poolW,
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает уровень сложности вопроса.
      *
-     * @return результат операции
+     * @return значение level
      */
     public Level level() {
         return question.level();
     }
 
     /**
-     * Возвращает текущее значение без изменения состояния.
+     * Возвращает размер пула вариантов.
      *
      * @return целочисленное значение
      */

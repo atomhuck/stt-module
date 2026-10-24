@@ -55,13 +55,13 @@ public class InterviewWebSocketHandler extends AbstractWebSocketHandler {
     private final Transcriber transcriber;   // null — второй проход (Whisper) выключен
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Подключает WebSocket-сессию к движку интервью.
      *
-     * @param speechFactory параметр операции
+     * @param speechFactory фабрика Vosk-сессий
      * @param kb скомпилированный банк знаний
      * @param policy политика выбора следующего действия
      * @param props настройки приложения
-     * @param mapper параметр операции
+     * @param mapper сериализатор JSON
      * @param reports сервис файлов отчётов
      */
     public InterviewWebSocketHandler(SpeechSessionFactory speechFactory, InterviewKnowledge kb,
@@ -168,7 +168,7 @@ public class InterviewWebSocketHandler extends AbstractWebSocketHandler {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Освобождает речевой движок после закрытия WebSocket-соединения.
      *
      * @param ws WebSocket-соединение
      * @param status код закрытия соединения

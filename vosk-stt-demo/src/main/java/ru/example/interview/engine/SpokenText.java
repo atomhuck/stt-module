@@ -27,17 +27,20 @@ public final class SpokenText {
     private final Map<String, String> dict;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Создаёт нормализатор произнесённого текста по словарю замен.
      *
-     * @param dict параметр операции
+     * @param dict словарь замен для произношения
      */
     public SpokenText(Map<String, String> dict) {
         this.dict = dict;
     }
 
+    /**
+     * Формат: «латиница=чтение», по строке; # — комментарий.
+     *
      * @param text текст ответа или документа
-     * @return результат операции
-    /** Формат: «латиница=чтение», по строке; # — комментарий. */
+     * @return словарь произношения технических терминов
+     */
     public static SpokenText parse(String text) {
         Map<String, String> m = new HashMap<>();
         for (String line : text.split("\\R")) {
@@ -60,9 +63,12 @@ public final class SpokenText {
         return process(text, null);
     }
 
+    /**
+     * Латинские фрагменты, для которых нет записи в словаре и пришлось применить запасную транслитерацию.
+     *
      * @param text текст ответа или документа
      * @return список результатов
-    /** Латинские фрагменты, для которых нет записи в словаре и пришлось применить запасную транслитерацию. */
+     */
     public List<String> unknown(String text) {
         List<String> out = new ArrayList<>();
         process(text, out);

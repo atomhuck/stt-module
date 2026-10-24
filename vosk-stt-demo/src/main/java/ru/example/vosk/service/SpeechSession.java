@@ -31,9 +31,9 @@ public class SpeechSession implements AutoCloseable {
      */
     public record Event(String type, String text, List<Word> words) {
         /**
-         * Создаёт объект с указанными зависимостями и настройками.
+         * Создаёт событие без временных меток слов.
          *
-         * @param type параметр операции
+         * @param type вид события
          * @param text текст ответа или документа
          */
         public Event(String type, String text) { this(type, text, List.of()); }
@@ -45,7 +45,7 @@ public class SpeechSession implements AutoCloseable {
     private String lastPartial = "";
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Создаёт Vosk-распознаватель для заданной частоты PCM.
      *
      * @param model загруженная модель Vosk
      * @param sampleRate частота отсчётов аудио
@@ -57,10 +57,13 @@ public class SpeechSession implements AutoCloseable {
         this.recognizer.setPartialWords(true);
     }
 
+    /**
+     * Не отправляет клиенту одинаковые промежуточные гипотезы.
+     *
      * @param data байты PCM
      * @param len число значимых байтов
      * @return новое событие или null, если гипотеза не изменилась
-    /** @return событие для клиента или null, если ничего нового (оптимизация: не шлём дубли). */
+     */
     public Event accept(byte[] data, int len) {
         if (recognizer.acceptWaveForm(data, len)) {
             lastPartial = "";
@@ -76,8 +79,11 @@ public class SpeechSession implements AutoCloseable {
         return event;
     }
 
-     * @return новое событие или null, если гипотеза не изменилась
-    /** Дораспознать остаток после остановки записи. */
+    /**
+     * Дораспознаёт остаток после остановки записи.
+     *
+     * @return итоговое событие после сброса остатка распознавания
+     */
     public Event finish() {
         lastPartial = "";
         return read(recognizer.getFinalResult(), "final", "text", "result");

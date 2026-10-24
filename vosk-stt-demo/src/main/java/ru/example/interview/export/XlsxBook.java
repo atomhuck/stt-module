@@ -34,7 +34,7 @@ public final class XlsxBook {
     private int sstRefs;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Создаёт пустую книгу XLSX.
      */
     public XlsxBook() {
         fonts.put("false|false|11.0|000000", 0);   // шрифт по умолчанию
@@ -43,10 +43,10 @@ public final class XlsxBook {
     }
 
     /**
-     * Добавляет настройки к создаваемому XLSX-документу.
+     * Создаёт и добавляет лист книги с указанным именем.
      *
-     * @param name имя файла или сущности
-     * @return тот же объект для последовательной настройки
+     * @param name имя листа
+     * @return созданный лист книги
      */
     public XlsxSheet sheet(String name) {
         XlsxSheet s = new XlsxSheet(this, name);

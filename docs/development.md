@@ -13,6 +13,7 @@ mvn -f vosk-stt-demo/pom.xml test
 mvn -f vosk-stt-demo/pom.xml package -DskipTests
 mvn -f vosk-stt-demo/pom.xml javadoc:javadoc
 node --test vosk-stt-demo/src/test/js/interview-client-test.js
+python -m unittest discover -s vosk-stt-demo/tools -p 'test_*.py'
 npx --yes @redocly/cli@2.64.1 lint docs/api/openapi.yaml
 npx --yes @redocly/cli@2.64.1 lint docs/api/interview-openapi.yaml
 npx --yes @redocly/cli@2.64.1 lint docs/api/whisper-openapi.yaml

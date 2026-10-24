@@ -43,7 +43,7 @@ public final class TermNormalizer {
     private final List<java.util.Set<String>> latinSkeletons = new ArrayList<>();
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Создаёт нормализатор терминов из глоссария.
      *
      * @param glossary словарь терминов
      */
@@ -51,8 +51,11 @@ public final class TermNormalizer {
         this(glossary, true);
     }
 
+    /**
+     * @param phonetic false — только точные варианты из словаря (без сопоставления «по звучанию»)
+     *
      * @param glossary словарь терминов
-    /** @param phonetic false — только точные варианты из словаря (без сопоставления «по звучанию») */
+     */
     public TermNormalizer(Glossary glossary, boolean phonetic) {
         this.phonetic = phonetic;
         for (Glossary.Entry e : glossary.entries()) {

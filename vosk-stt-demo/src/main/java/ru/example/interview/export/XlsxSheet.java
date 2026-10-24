@@ -4,8 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.TreeMap;
 
+/**
+ * Лист книги. Индексы строк и столбцов — с нуля.
+ *
  * @version 1.0.0
-/** Лист книги. Индексы строк и столбцов — с нуля. */
+ */
 public final class XlsxSheet {
 
     record Cell(Object value, String formula, int style) {}
@@ -39,7 +42,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Задаёт цвет вкладки листа.
      *
      * @param rgb цвет в формате RGB
      * @return тот же объект для последовательной настройки
@@ -50,7 +53,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Скрывает сетку листа.
      *
      * @return тот же объект для последовательной настройки
      */
@@ -60,7 +63,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Задаёт ширину колонки.
      *
      * @param col номер колонки
      * @param w ширина колонки
@@ -72,7 +75,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Задаёт высоту строки с ограничением Excel в 409 пунктов.
      *
      * @param row номер строки
      * @param pts высота в пунктах
@@ -84,7 +87,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Закрепляет строки и колонки.
      *
      * @param rows число строк
      * @param cols число колонок
@@ -97,7 +100,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Задаёт область автофильтра.
      *
      * @param r1 первая строка
      * @param c1 первая колонка
@@ -111,7 +114,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Повторяет строку заголовка при печати.
      *
      * @return тот же объект для последовательной настройки
      */
@@ -121,7 +124,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Настраивает представление отчёта перед записью XLSX.
+     * Записывает значение и стиль ячейки.
      *
      * @param r номер строки
      * @param c номер колонки
@@ -134,18 +137,24 @@ public final class XlsxSheet {
         return this;
     }
 
+    /**
+     * Формула с кэшированным значением (его покажут и программы, которые не пересчитывают формулы).
+     *
      * @param r номер строки
      * @param c номер колонки
      * @param formula формула ячейки
      * @param cached кэшированное значение формулы
      * @param style стиль ячейки
      * @return тот же объект для последовательной настройки
-    /** Формула с кэшированным значением (его покажут и программы, которые не пересчитывают формулы). */
+     */
     public XlsxSheet formula(int r, int c, String formula, Object cached, XlsxStyle style) {
         rows.computeIfAbsent(r, k -> new TreeMap<>()).put(c, new Cell(cached, formula, book.style(style)));
         return this;
     }
 
+    /**
+     * Объединённая область: стиль применяется ко всем ячейкам (чтобы работали границы и заливка).
+     *
      * @param r1 первая строка
      * @param c1 первая колонка
      * @param r2 последняя строка
@@ -153,7 +162,7 @@ public final class XlsxSheet {
      * @param value значение ячейки
      * @param style стиль ячейки
      * @return тот же объект для последовательной настройки
-    /** Объединённая область: стиль применяется ко всем ячейкам (чтобы работали границы и заливка). */
+     */
     public XlsxSheet merge(int r1, int c1, int r2, int c2, Object value, XlsxStyle style) {
         for (int r = r1; r <= r2; r++) {
             for (int c = c1; c <= c2; c++) {
@@ -165,7 +174,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Добавляет настройки к создаваемому XLSX-документу.
+     * Объединяет область и записывает формулу в её верхнюю левую ячейку.
      *
      * @param r1 первая строка
      * @param c1 первая колонка
@@ -182,15 +191,18 @@ public final class XlsxSheet {
         return this;
     }
 
+    /**
+     * Трёхцветная шкала красный → жёлтый → зелёный (0 / mid / max).
+     *
      * @param r1 первая строка
      * @param c1 первая колонка
      * @param r2 последняя строка
      * @param c2 последняя колонка
-     * @param min параметр операции
-     * @param mid параметр операции
-     * @param max параметр операции
+     * @param min нижняя граница шкалы
+     * @param mid средняя точка шкалы
+     * @param max верхняя граница шкалы
      * @return тот же объект для последовательной настройки
-    /** Трёхцветная шкала красный → жёлтый → зелёный (0 / mid / max). */
+     */
     public XlsxSheet colorScale(int r1, int c1, int r2, int c2, double min, double mid, double max) {
         String sq = ref(r1, c1, r2, c2);
         String xml = "<conditionalFormatting sqref=\"" + sq + "\"><cfRule type=\"colorScale\" priority=\"" + (priority++)
@@ -201,15 +213,18 @@ public final class XlsxSheet {
         return this;
     }
 
+    /**
+     * Подкраска ячеек, равных тексту (например «Да» → зелёная заливка).
+     *
      * @param r1 первая строка
      * @param c1 первая колонка
      * @param r2 последняя строка
      * @param c2 последняя колонка
      * @param text текст ответа или документа
-     * @param fontRgb параметр операции
-     * @param fillRgb параметр операции
+     * @param fontRgb цвет шрифта RGB
+     * @param fillRgb цвет заливки RGB
      * @return тот же объект для последовательной настройки
-    /** Подкраска ячеек, равных тексту (например «Да» → зелёная заливка). */
+     */
     public XlsxSheet cellEquals(int r1, int c1, int r2, int c2, String text, String fontRgb, String fillRgb) {
         int dxf = book.dxf(fontRgb, fillRgb);
         String sq = ref(r1, c1, r2, c2);
@@ -219,13 +234,16 @@ public final class XlsxSheet {
         return this;
     }
 
-     * @param chart параметр операции
-     * @param fromRow параметр операции
-     * @param fromCol параметр операции
-     * @param toRow параметр операции
-     * @param toCol параметр операции
+    /**
+     * Диаграмма; якорь — ячейки левого верхнего и правого нижнего углов (включительно).
+     *
+     * @param chart диаграмма XLSX
+     * @param fromRow начальная строка
+     * @param fromCol начальная колонка
+     * @param toRow конечная строка
+     * @param toCol конечная колонка
      * @return тот же объект для последовательной настройки
-    /** Диаграмма; якорь — ячейки левого верхнего и правого нижнего углов (включительно). */
+     */
     public XlsxSheet chart(XlsxChart chart, int fromRow, int fromCol, int toRow, int toCol) {
         charts.add(chart);
         chartAnchors.add(new int[]{fromRow, fromCol, toRow, toCol});
@@ -235,7 +253,7 @@ public final class XlsxSheet {
     // ------------------------------------------------------------------ адреса
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Преобразует номер колонки в буквенный адрес Excel.
      *
      * @param c номер колонки
      * @return строка результата
@@ -252,7 +270,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Формирует адрес одной ячейки Excel.
      *
      * @param r номер строки
      * @param c номер колонки
@@ -263,7 +281,7 @@ public final class XlsxSheet {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Формирует диапазон ячеек Excel.
      *
      * @param r1 первая строка
      * @param c1 первая колонка
@@ -275,12 +293,15 @@ public final class XlsxSheet {
         return (r1 == r2 && c1 == c2) ? addr(r1, c1) : addr(r1, c1) + ":" + addr(r2, c2);
     }
 
+    /**
+     * Абсолютная ссылка вида 'Лист'!$A$2:$A$9 — для диаграмм и определённых имён.
+     *
      * @param r1 первая строка
      * @param c1 первая колонка
      * @param r2 последняя строка
      * @param c2 последняя колонка
      * @return строка результата
-    /** Абсолютная ссылка вида 'Лист'!$A$2:$A$9 — для диаграмм и определённых имён. */
+     */
     public String absRef(int r1, int c1, int r2, int c2) {
         return "'" + name.replace("'", "''") + "'!$" + col(c1) + "$" + (r1 + 1) + ":$" + col(c2) + "$" + (r2 + 1);
     }

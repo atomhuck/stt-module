@@ -18,9 +18,9 @@ public class SpeechSessionFactory {
     private final VoskProperties props;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Настраивает создание речевых сессий.
      *
-     * @param modelHolder параметр операции
+     * @param modelHolder держатель загруженной модели Vosk
      * @param props настройки приложения
      */
     public SpeechSessionFactory(VoskModelHolder modelHolder, VoskProperties props) {
@@ -29,7 +29,7 @@ public class SpeechSessionFactory {
     }
 
     /**
-     * Выполняет операцию публичного контракта компонента.
+     * Создаёт независимую Vosk-сессию для нового соединения.
      *
      * @return новая речевая сессия
      * @throws IOException при ошибке чтения, записи или обработки потока

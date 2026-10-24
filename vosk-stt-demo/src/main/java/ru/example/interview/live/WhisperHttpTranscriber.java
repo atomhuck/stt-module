@@ -38,7 +38,7 @@ public final class WhisperHttpTranscriber implements Transcriber {
     private final Duration timeout;
 
     /**
-     * Создаёт объект с указанными зависимостями и настройками.
+     * Настраивает HTTP-клиент уточнения распознанной речи.
      *
      * @param url адрес локального HTTP-сервиса
      * @param timeout таймаут HTTP-запроса
@@ -71,9 +71,12 @@ public final class WhisperHttpTranscriber implements Transcriber {
                 });
     }
 
+    /**
+     * Возвращает текст и слова; при отсутствии детального маршрута использует текстовый /transcribe.
+     *
      * @param pcm байты PCM16 без WAV-заголовка
      * @return асинхронный результат распознавания
-    /** Optional enriched output. The original text-only /transcribe endpoint remains unchanged. */
+     */
     public CompletableFuture<Transcript> transcribeDetailed(byte[] pcm) {
         HttpRequest req = HttpRequest.newBuilder(detailedUri).timeout(timeout)
                 .header("Content-Type", "application/octet-stream")

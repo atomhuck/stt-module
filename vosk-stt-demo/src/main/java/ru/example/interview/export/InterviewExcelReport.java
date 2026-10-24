@@ -65,7 +65,7 @@ public final class InterviewExcelReport {
     /**
      * Создаёт XLSX-отчёт в памяти без перезаписи существующих файлов.
      *
-     * @param d параметр операции
+     * @param d данные завершённого интервью
      * @return байты XLSX-файла
      * @throws IOException при ошибке чтения, записи или обработки потока
      */
